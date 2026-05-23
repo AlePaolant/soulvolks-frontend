@@ -1,26 +1,42 @@
 @import "tailwindcss";
 
+@font-face {
+  font-family: 'Droid';
+  src: url('/fonts/Droid-Regular.woff2') format('woff2'),
+       url('/fonts/Droid-Regular.woff') format('woff');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'TimesSans';
+  src: url('/fonts/Times-Sans.woff2') format('woff2'),
+       url('/fonts/Times-Sans.woff') format('woff');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --panna: #fef9ec;
+  --rosso: #e12713;
+  --nero: #15120d;
+  --panna-chiaro: #efeed7;
+  --petrolio: #00435e;
+  --bordeaux: #79000a;
+  --scuro: #1b1713;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-poppins), 'Poppins', sans-serif;
+  background-color: var(--panna);
+  color: var(--nero);
+  -webkit-font-smoothing: antialiased;
 }
+
+.font-poppins { font-family: var(--font-poppins), 'Poppins', sans-serif !important; }
+.font-dm { font-family: var(--font-dm-serif), 'DM Serif Display', serif !important; }
+.font-playwrite { font-family: var(--font-playwrite), 'Playwrite US Trad', cursive !important; }
+.font-droid { font-family: 'Droid', sans-serif !important; }
+.font-times { font-family: 'TimesSans', serif !important; }
