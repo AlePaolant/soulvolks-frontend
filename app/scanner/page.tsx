@@ -205,7 +205,7 @@ export default function ScannerPage() {
                             <p className="font-poppins text-xs uppercase tracking-[0.4em] text-[var(--panna-chiaro)]/40 mb-2">
                                 Parcheggio
                             </p>
-                            <p className="font-droid text-[var(--panna-chiaro)] leading-none"
+                            <p className="font-poppins text-[var(--panna-chiaro)] leading-none"
                                 style={{ fontSize: '6rem' }}>
                                 {biglietto.zona === 'A' ? 'A' : 'B'}
                             </p>
