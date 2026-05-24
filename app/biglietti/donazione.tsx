@@ -18,20 +18,20 @@ export default function Donazione() {
 
   return (
     <PayPalScriptProvider options={{ clientId: PAYPAL_CLIENT_ID, currency: 'EUR' }}>
-      <section className="border-t-2 border-[var(--nero)]/10 mt-20 pt-20">
+      <section className="border-t-2 border-[var(--nero)]/10 mt-20 pt-20 mx-auto">
         
-        <div className="flex items-center gap-4 mb-2">
-          <div className="w-8 h-[2px] bg-[var(--rosso)]" />
-          <span className="font-poppins text-xs uppercase tracking-[0.3em] text-[var(--nero)]/40">
-            Opzionale
-          </span>
-        </div>
+        <div className="flex items-center gap-4 mb-6">
+                  <div className="w-8 h-[2px] bg-[var(--rosso)]" />
+                  <span className="font-poppins text-sm uppercase tracking-[0.3em] text-[var(--nero)]/80">
+                    Opzionale
+                  </span>
+                </div>
 
         <h2 className="font-droid text-[var(--nero)] mb-4"
-          style={{ fontSize: 'clamp(2.5rem, 6vw, 5rem)', letterSpacing: '-0.03em' }}>
-          SUPPORTA<br />L'EVENTO
+          style={{ fontSize: 'clamp(2.5rem, 6vw, 5rem)' }}>
+          SUPPORTA L'EVENTO
         </h2>
-        <p className="font-poppins text-[var(--nero)]/50 text-sm mb-10 max-w-lg">
+        <p className="font-poppins text-[var(--nero)]/80 text-md mb-10 max-w-lg">
           Se vuoi contribuire alla realizzazione del Matese Volks Camp, 
           puoi fare una donazione libera. Ogni contributo fa la differenza.
         </p>
@@ -43,10 +43,10 @@ export default function Donazione() {
               {IMPORTI_PRESET.map((i) => (
                 <button key={i} type="button"
                   onClick={() => { setImporto(i); setCustom(false) }}
-                  className={`py-4 border-2 font-poppins font-black text-lg transition-all ${
+                  className={`py-4 border-2 rounded-lg font-poppins font-black text-lg transition-all ${
                     importo === i && !custom
                       ? 'border-[var(--nero)] bg-[var(--nero)] text-[var(--panna)]'
-                      : 'border-[var(--nero)]/20 hover:border-[var(--nero)]/60'
+                      : 'border-[var(--nero)]/20 hover:border-[var(--rosso)]/90'
                   }`}>
                   €{i}
                 </button>
@@ -57,8 +57,8 @@ export default function Donazione() {
             <div>
               <button type="button"
                 onClick={() => { setCustom(true); setImporto('') }}
-                className={`text-xs uppercase tracking-[0.2em] font-poppins transition-colors ${
-                  custom ? 'text-[var(--rosso)]' : 'text-[var(--nero)]/30 hover:text-[var(--nero)]'
+                className={`text-sm uppercase tracking-[0.2em] font-poppins transition-colors ${
+                  custom ? 'text-[var(--rosso)]' : 'text-[var(--nero)] hover:text-[var(--rosso)]'
                 }`}>
                 + Importo personalizzato
               </button>

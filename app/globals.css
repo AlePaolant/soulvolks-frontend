@@ -40,3 +40,14 @@ body {
 .font-playwrite { font-family: var(--font-playwrite), 'Playwrite US Trad', cursive !important; }
 .font-droid { font-family: 'Droid', sans-serif !important; }
 .font-times { font-family: 'TimesSans', serif !important; }
+
+/* Nascondi frecce input number */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+input[type="number"] {
+  -moz-appearance: textfield;
+}
