@@ -62,36 +62,68 @@ export default function BigliettiPage() {
   }
 
   const handlePaymentSuccess = async (orderId: string) => {
-    setLoading(true)
-    try {
-      const res = await fetch('/api/biglietti', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...formData, paypal_order_id: orderId }),
-      })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error)
-      setUuid(data.uuid)
+  setLoading(true)
+  try {
+    const res = await fetch('/api/biglietti', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...formData, paypal_order_id: orderId }),
+    })
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error)
+    setUuid(data.uuid)
 
-      await fetch('/api/biglietti/email', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...formData, uuid: data.uuid, zona: formData.tipo === 'volkswagen' ? 'A' : 'B' }),
-      })
+    // Aspetta che il DOM del biglietto venga renderizzato
+    setStep('success')
+    await new Promise(resolve => setTimeout(resolve, 1000))
 
-      await fetch('/api/biglietti/telegram', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...formData, uuid: data.uuid }),
+    // Genera PDF dal DOM
+    let pdfBase64 = null
+    const element = document.getElementById('biglietto-pdf')
+    if (element) {
+      const canvas = await html2canvas(element, {
+        backgroundColor: '#fef9ec',
+        scale: 2,
+        logging: false,
+        useCORS: true,
+        onclone: (doc) => {
+          const el = doc.getElementById('biglietto-pdf')
+          if (el) el.style.colorScheme = 'light'
+        }
       })
-
-      setStep('success')
-    } catch (err: any) {
-      setError(err.message || 'Errore durante il pagamento')
-    } finally {
-      setLoading(false)
+      const imgData = canvas.toDataURL('image/png')
+      const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm' })
+      const pdfWidth = pdf.internal.pageSize.getWidth()
+      const pdfHeight = (canvas.height * pdfWidth) / canvas.width
+      pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight)
+      pdfBase64 = pdf.output('datauristring').split(',')[1]
     }
+
+    // Invia email con PDF
+    await fetch('/api/biglietti/email', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        ...formData,
+        uuid: data.uuid,
+        zona: formData.tipo === 'volkswagen' ? 'A' : 'B',
+        pdfBase64,
+      }),
+    })
+
+    await fetch('/api/biglietti/telegram', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...formData, uuid: data.uuid }),
+    })
+
+  } catch (err: any) {
+    setError(err.message || 'Errore durante il pagamento')
+    setStep('payment')
+  } finally {
+    setLoading(false)
   }
+}
 
   const downloadPDF = async () => {
     const element = document.getElementById('biglietto-pdf')
