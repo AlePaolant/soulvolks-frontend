@@ -126,7 +126,7 @@ export default function BigliettiPage() {
       <main className="min-h-screen bg-[var(--panna)]">
 
         {/* ── HERO ─────────────────────────────────────────── */}
-        <section className="relative bg-[var(--scuro)] overflow-hidden" style={{ minHeight: '85vh' }}>
+        <section className="relative bg-[var(--scuro)] overflow-hidden" style={{ minHeight: 'auto' }}>
 
           {/* Texture grana */}
           <div className="absolute inset-0 opacity-[0.03]"
@@ -173,11 +173,8 @@ export default function BigliettiPage() {
 
               {/* Centro — titolo gigante */}
               <div className="my-auto py-8">
-                <h1 className="font-droid text-[var(--panna-chiaro)] leading-[0.95]"
-                  style={{
-                    fontSize: 'clamp(4rem, 10vw, 14rem)',
-                    textShadow: '6px 6px 0px rgba(225,39,19,0.25)'
-                  }}>
+                <h1 className="font-droid text-[var(--panna-chiaro)] leading-[0.95] text-[6rem] md:text-[6rem] lg:text-[10rem]"
+  style={{ textShadow: '6px 6px 0px rgba(225,39,19,0.25)' }}>
                   MATESE<br />
                   <span className="text-[var(--bordeaux)]">VOLKS</span><br />
                   CAMP
@@ -195,8 +192,9 @@ export default function BigliettiPage() {
                     Biglietto unico evento
                   </p>
                   <div className="flex items-baseline gap-3">
-                    <span className="font-droid text-[var(--bordeaux)]" style={{ fontSize: 'clamp(2rem, 4vw, 3.5rem)' }}>€20</span>
-                    <span className="font-poppins text-[var(--panna-chiaro)]/80 text-lg">/ persona</span>
+                    <span className="font-droid text-[var(--bordeaux)] text-[3.5rem] sm:text-[3rem] md:text-[3rem] lg:text-[3.5rem]">€20</span>
+
+                    <span className="font-poppins text-[var(--panna-chiaro)]/80 text-lg">/ veicolo</span>
                   </div>
                 </div>
                 <div className="flex items-center gap-3 animate-bounce">
@@ -230,7 +228,7 @@ export default function BigliettiPage() {
             <form onSubmit={handleFormSubmit}>
 
               {/* Scelta tipo veicolo */}
-              <div className="mb-12">
+              <div className="mb-8">
                 <div className="flex items-center gap-4 mb-6">
                   <div className="w-8 h-[2px] bg-[var(--rosso)]" />
                   <span className="font-poppins text-sm uppercase tracking-[0.3em] text-[var(--nero)]/80">
@@ -289,7 +287,7 @@ export default function BigliettiPage() {
               </div>
 
               {/* Dati personali */}
-              <div className="mb-12">
+              <div className="mb-8">
                 <div className="flex items-center gap-4 mb-6">
                   <div className="w-8 h-[2px] bg-[var(--rosso)]" />
                   <span className="font-poppins text-sm uppercase tracking-[0.3em] text-[var(--nero)]/80">
@@ -332,7 +330,7 @@ export default function BigliettiPage() {
 
               {/* Campi VW */}
               {formData.tipo === 'volkswagen' && (
-                <div className="mb-12 p-8 bg-[var(--bordeaux)] relative overflow-hidden rounded-xl">
+                <div className="mb-8 p-8 bg-[var(--bordeaux)] relative overflow-hidden rounded-xl">
                   <h3 className="font-poppins text-[var(--panna-chiaro)] text-2xl font-bold uppercase tracking-wider mb-8">
                     La tua Volkswagen
                   </h3>
@@ -399,7 +397,7 @@ export default function BigliettiPage() {
           {/* STEP: PAYMENT */}
           {step === 'payment' && (
             <div>
-              <h2 className="font-droid text-[var(--nero)] mb-12"
+              <h2 className="font-droid text-[var(--nero)] mb-8"
                 style={{ fontSize: 'clamp(2.5rem, 6vw, 5rem)', letterSpacing: '-0.03em' }}>
                 RIEPILOGO
               </h2>
@@ -558,7 +556,7 @@ export default function BigliettiPage() {
           <FAQ />
 
         </section>
-        
+
         <Footer />
       </main>
     </PayPalScriptProvider>
