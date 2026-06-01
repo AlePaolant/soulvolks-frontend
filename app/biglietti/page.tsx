@@ -62,68 +62,68 @@ export default function BigliettiPage() {
   }
 
   const handlePaymentSuccess = async (orderId: string) => {
-  setLoading(true)
-  try {
-    const res = await fetch('/api/biglietti', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...formData, paypal_order_id: orderId }),
-    })
-    const data = await res.json()
-    if (!res.ok) throw new Error(data.error)
-    setUuid(data.uuid)
-
-    // Aspetta che il DOM del biglietto venga renderizzato
-    setStep('success')
-    await new Promise(resolve => setTimeout(resolve, 1000))
-
-    // Genera PDF dal DOM
-    let pdfBase64 = null
-    const element = document.getElementById('biglietto-pdf')
-    if (element) {
-      const canvas = await html2canvas(element, {
-        backgroundColor: '#fef9ec',
-        scale: 2,
-        logging: false,
-        useCORS: true,
-        onclone: (doc) => {
-          const el = doc.getElementById('biglietto-pdf')
-          if (el) el.style.colorScheme = 'light'
-        }
+    setLoading(true)
+    try {
+      const res = await fetch('/api/biglietti', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...formData, paypal_order_id: orderId }),
       })
-      const imgData = canvas.toDataURL('image/png')
-      const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm' })
-      const pdfWidth = pdf.internal.pageSize.getWidth()
-      const pdfHeight = (canvas.height * pdfWidth) / canvas.width
-      pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight)
-      pdfBase64 = pdf.output('datauristring').split(',')[1]
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error)
+      setUuid(data.uuid)
+
+      // Aspetta che il DOM del biglietto venga renderizzato
+      setStep('success')
+      await new Promise(resolve => setTimeout(resolve, 1000))
+
+      // Genera PDF dal DOM
+      let pdfBase64 = null
+      const element = document.getElementById('biglietto-pdf')
+      if (element) {
+        const canvas = await html2canvas(element, {
+          backgroundColor: '#fef9ec',
+          scale: 2,
+          logging: false,
+          useCORS: true,
+          onclone: (doc) => {
+            const el = doc.getElementById('biglietto-pdf')
+            if (el) el.style.colorScheme = 'light'
+          }
+        })
+        const imgData = canvas.toDataURL('image/png')
+        const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm' })
+        const pdfWidth = pdf.internal.pageSize.getWidth()
+        const pdfHeight = (canvas.height * pdfWidth) / canvas.width
+        pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight)
+        pdfBase64 = pdf.output('datauristring').split(',')[1]
+      }
+
+      // Invia email con PDF
+      await fetch('/api/biglietti/email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...formData,
+          uuid: data.uuid,
+          zona: formData.tipo === 'volkswagen' ? 'A' : 'B',
+          pdfBase64,
+        }),
+      })
+
+      await fetch('/api/biglietti/telegram', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...formData, uuid: data.uuid }),
+      })
+
+    } catch (err: any) {
+      setError(err.message || 'Errore durante il pagamento')
+      setStep('payment')
+    } finally {
+      setLoading(false)
     }
-
-    // Invia email con PDF
-    await fetch('/api/biglietti/email', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        ...formData,
-        uuid: data.uuid,
-        zona: formData.tipo === 'volkswagen' ? 'A' : 'B',
-        pdfBase64,
-      }),
-    })
-
-    await fetch('/api/biglietti/telegram', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...formData, uuid: data.uuid }),
-    })
-
-  } catch (err: any) {
-    setError(err.message || 'Errore durante il pagamento')
-    setStep('payment')
-  } finally {
-    setLoading(false)
   }
-}
 
   const downloadPDF = async () => {
     const element = document.getElementById('biglietto-pdf')
@@ -206,7 +206,7 @@ export default function BigliettiPage() {
               {/* Centro — titolo gigante */}
               <div className="my-auto py-8">
                 <h1 className="font-droid text-[var(--panna-chiaro)] leading-[0.95] text-[6rem] md:text-[6rem] lg:text-[10rem]"
-  style={{ textShadow: '6px 6px 0px rgba(225,39,19,0.25)' }}>
+                  style={{ textShadow: '6px 6px 0px rgba(225,39,19,0.25)' }}>
                   MATESE<br />
                   <span className="text-[var(--bordeaux)]">VOLKS</span><br />
                   CAMP
@@ -501,7 +501,7 @@ export default function BigliettiPage() {
 
               {/* Biglietto */}
               <div id="biglietto-pdf" className="border-2 border-[var(--nero)] p-8 mb-6"
-                style={{ backgroundColor: '#fef9ec', color: '#15120d' }}>
+                style={{ backgroundColor: '#fef9ec', color: '#15120d', width: '600px', maxWidth: '100%' }}>
 
                 {/* Header biglietto */}
                 <div className="flex justify-between items-end mb-8 pb-6 border-b-2 border-[#15120d]">
@@ -526,7 +526,7 @@ export default function BigliettiPage() {
                 {/* Contenuto */}
                 <div className="flex gap-8 items-start mb-8">
                   <QRCodeSVG value={uuid} size={160} bgColor="#fef9ec" fgColor="#15120d" />
-                  <div className="flex-1 grid grid-cols-2 gap-6">
+                  <div className="flex flex-col gap-4">
                     <div>
                       <p style={{ fontFamily: 'Poppins, sans-serif', fontSize: '0.65rem', color: '#15120d', opacity: 0.8, letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: '4px' }}>Intestatario</p>
                       <p style={{ fontFamily: 'Poppins, sans-serif', fontWeight: 600, fontSize: '1rem', color: '#15120d' }}>{formData.nome} {formData.cognome}</p>
@@ -571,15 +571,12 @@ export default function BigliettiPage() {
 
               {/* Bottone download */}
               <button onClick={downloadPDF}
-                className="w-full flex items-center rounded-lg justify-center gap-3 bg-[var(--nero)] text-[var(--panna)] py-5 font-poppins font-black uppercase tracking-[0.15em] text-sm hover:bg-[var(--bordeaux)] transition-colors mb-8">
+                className="w-full flex items-center rounded-lg justify-center gap-3 bg-[var(--nero)] text-[var(--panna)] py-5 font-poppins font-black uppercase tracking-[0.15em] text-sm hover:bg-[var(--bordeaux)] transition-colors mb-4">
                 Scarica biglietto PDF
               </button>
-
-              <div className="space-y-2">
-                <p className="font-poppins text-sm text-[var(--nero)]/80">
-                  Riceverai anche una email di conferma con il biglietto allegato.
-                </p>
-              </div>
+              <p className="font-poppins text-sm text-[var(--nero)]/60 text-center mb-8">
+                Riceverai anche il biglietto via email con il PDF allegato.
+              </p>
 
             </div>
           )}

@@ -252,7 +252,25 @@ export default function ScannerPage() {
                     <div className="text-center py-12">
                         <XCircle size={48} className="text-[var(--bordeaux)] mx-auto mb-4" />
                         <p className="font-poppins font-bold text-lg text-[var(--panna-chiaro)] mb-2">Errore</p>
-                        <p className="font-poppins text-sm text-[var(--panna-chiaro)]/40 mb-8">{errorMsg}</p>
+                        <p className="font-poppins text-sm text-[var(--panna-chiaro)]/40 mb-6">{errorMsg}</p>
+
+                        {errorMsg.includes('fotocamera') && (
+                            <div className="bg-[var(--panna-chiaro)]/5 border border-[var(--panna-chiaro)]/10 rounded-xl p-5 mb-6 text-left">
+                                <p className="font-poppins text-xs font-bold text-[var(--panna-chiaro)]/60 uppercase tracking-widest mb-3">
+                                    Come abilitare la fotocamera
+                                </p>
+                                <p className="font-poppins text-xs text-[var(--panna-chiaro)]/40 mb-2">
+                                    📱 <strong className="text-[var(--panna-chiaro)]/60">iPhone/Safari:</strong> Impostazioni → Safari → Fotocamera → Consenti
+                                </p>
+                                <p className="font-poppins text-xs text-[var(--panna-chiaro)]/40 mb-2">
+                                    📱 <strong className="text-[var(--panna-chiaro)]/60">Android/Chrome:</strong> Impostazioni → Applicazioni → Chrome → Autorizzazioni → Fotocamera
+                                </p>
+                                <p className="font-poppins text-xs text-[var(--panna-chiaro)]/40">
+                                    💻 <strong className="text-[var(--panna-chiaro)]/60">Desktop:</strong> Clicca sul lucchetto nella barra URL → Fotocamera → Consenti
+                                </p>
+                            </div>
+                        )}
+
                         <button onClick={handleReset}
                             className="flex items-center gap-2 mx-auto text-[var(--panna-chiaro)]/40 hover:text-[var(--panna-chiaro)] transition-colors font-poppins text-sm uppercase tracking-widest">
                             <RefreshCw size={16} />
