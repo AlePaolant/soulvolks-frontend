@@ -4,7 +4,24 @@ import { v4 as uuidv4 } from 'uuid'
 const STRAPI_URL = process.env.NEXT_PUBLIC_STRAPI_API_URL || 'http://localhost:1338/api'
 const STRAPI_TOKEN = process.env.STRAPI_API_TOKEN
 
+// Rate limiting in memoria
+const rateLimitMap = new Map<string, number>()
+
+function checkRateLimit(ip: string): boolean {
+  const now = Date.now()
+  const last = rateLimitMap.get(ip) || 0
+  if (now - last < 10000) return false
+  rateLimitMap.set(ip, now)
+  return true
+}
+
 export async function POST(req: NextRequest) {
+  // Rate limit
+  const ip = req.headers.get('x-forwarded-for') || 'unknown'
+  if (!checkRateLimit(ip)) {
+    return NextResponse.json({ error: 'Troppi tentativi. Riprova tra qualche secondo.' }, { status: 429 })
+  }
+
   try {
     const body = await req.json()
     const { nome, cognome, email, telefono, n_passeggeri, targa, tipo, modello, anno, note, paypal_order_id } = body
