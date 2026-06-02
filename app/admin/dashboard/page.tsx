@@ -99,6 +99,7 @@ export default function AdminDashboard() {
     const [search, setSearch] = useState('')
     const [bigliettoSelezionato, setBigliettoSelezionato] = useState<Biglietto | null>(null)
     const [periodo, setPeriodo] = useState<Periodo>('settimana')
+    const [filtro, setFiltro] = useState('')
 
     const fetchBiglietti = useCallback(async () => {
         setLoading(true)
@@ -135,11 +136,18 @@ export default function AdminDashboard() {
         a.click()
     }
 
-    const bigliettiFiltered = biglietti.filter(b =>
-        `${b.nome} ${b.cognome} ${b.targa} ${b.email}`.toLowerCase().includes(search.toLowerCase())
-    )
+    const bigliettiFiltered = biglietti
+        .filter(b => `${b.nome} ${b.cognome} ${b.targa} ${b.email}`.toLowerCase().includes(search.toLowerCase()))
+        .filter(b => {
+            if (!filtro) return true
+            if (filtro === 'pagato' || filtro === 'usato') return b.stato === filtro
+            if (filtro === 'volkswagen' || filtro === 'standard') return b.tipo === filtro
+            if (filtro === 'A' || filtro === 'B') return b.zona === filtro
+            return true
+        })
 
     const chartData = buildChartData(biglietti, periodo)
+
 
     return (
         <div className="min-h-screen bg-[var(--panna)] flex">
@@ -359,6 +367,28 @@ export default function AdminDashboard() {
                                 <input value={search} onChange={e => setSearch(e.target.value)}
                                     placeholder="Cerca per nome, targa, email..."
                                     className="w-full bg-white border border-[var(--nero)]/10 rounded-xl pl-10 pr-4 py-3 font-poppins text-sm text-[var(--nero)] outline-none focus:border-[var(--rosso)] transition-colors" />
+                            </div>
+
+                            {/* Filtri */}
+                            <div className="flex gap-2 flex-wrap">
+                                {[
+                                    { label: 'Tutti', value: '' },
+                                    { label: 'Pagati', value: 'pagato' },
+                                    { label: 'Usati', value: 'usato' },
+                                    { label: 'Volkswagen', value: 'volkswagen' },
+                                    { label: 'Camper/Tenda', value: 'standard' },
+                                    { label: 'Zona A', value: 'A' },
+                                    { label: 'Zona B', value: 'B' },
+                                ].map(f => (
+                                    <button key={f.value}
+                                        onClick={() => setFiltro(f.value)}
+                                        className={`px-3 py-1.5 rounded-lg font-poppins text-xs uppercase tracking-wider transition-all ${filtro === f.value
+                                            ? 'bg-gray-900 text-white'
+                                            : 'bg-white border border-gray-200 text-gray-500 hover:border-gray-400'
+                                            }`}>
+                                        {f.label}
+                                    </button>
+                                ))}
                             </div>
 
                             {loading ? (
