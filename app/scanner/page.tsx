@@ -158,13 +158,47 @@ export default function ScannerPage() {
 
             <div className="max-w-md mx-auto px-6 py-8">
 
-                {/* Scanner */}
                 {scanState === 'scanning' && (
                     <div>
                         <p className="font-poppins text-xs uppercase tracking-[0.3em] text-[var(--panna-chiaro)]/30 mb-6 text-center">
                             Inquadra il QR code del biglietto
                         </p>
                         <div id="qr-reader" className="rounded-xl overflow-hidden" />
+
+                        {/* Input manuale */}
+                        <div className="mt-6">
+                            <p className="font-poppins text-[10px] uppercase tracking-[0.3em] text-[var(--panna-chiaro)]/30 text-center mb-3">
+                                oppure inserisci il codice manualmente
+                            </p>
+                            <div className="flex gap-2">
+                                <input
+                                    type="text"
+                                    placeholder="Incolla il codice UUID..."
+                                    className="flex-1 bg-[var(--panna-chiaro)]/5 border border-[var(--panna-chiaro)]/10 rounded-xl px-4 py-3 text-[var(--panna-chiaro)] font-poppins text-sm outline-none focus:border-[var(--rosso)] transition-colors"
+                                    onKeyDown={async (e) => {
+                                        if (e.key === 'Enter') {
+                                            const val = (e.target as HTMLInputElement).value.trim()
+                                            if (val) {
+                                                await stopScanner()
+                                                await handleScan(val)
+                                            }
+                                        }
+                                    }}
+                                />
+                                <button
+                                    onClick={async (e) => {
+                                        const input = (e.currentTarget.previousSibling as HTMLInputElement)
+                                        const val = input?.value?.trim()
+                                        if (val) {
+                                            await stopScanner()
+                                            await handleScan(val)
+                                        }
+                                    }}
+                                    className="px-4 py-3 bg-[var(--rosso)] text-white font-poppins font-bold text-xs uppercase tracking-widest rounded-xl hover:bg-[var(--bordeaux)] transition-colors">
+                                    Cerca
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 )}
 
