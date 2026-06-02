@@ -5,8 +5,8 @@ const STRAPI_URL = process.env.NEXT_PUBLIC_STRAPI_API_URL || 'http://localhost:1
 const STRAPI_TOKEN = process.env.STRAPI_API_TOKEN
 const PAYPAL_CLIENT_ID = process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID
 const PAYPAL_SECRET = process.env.PAYPAL_SECRET_KEY
-//const PAYPAL_BASE = 'https://api-m.paypal.com' // produzione
- const PAYPAL_BASE = 'https://api-m.sandbox.paypal.com' // sandbox
+const PAYPAL_BASE = 'https://api-m.paypal.com' // produzione
+//const PAYPAL_BASE = 'https://api-m.sandbox.paypal.com' // sandbox
 
 // Rate limiting
 const rateLimitMap = new Map<string, number>()
@@ -55,10 +55,10 @@ export async function POST(req: NextRequest) {
     const { nome, cognome, email, telefono, n_passeggeri, targa, tipo, modello, anno, note, paypal_order_id } = body
 
     // Verifica PayPal
-    //const isValid = await verifyPayPalOrder(paypal_order_id)
-    //if (!isValid) {
-      //return NextResponse.json({ error: 'Pagamento non verificato.' }, { status: 400 })
-    //}
+    const isValid = await verifyPayPalOrder(paypal_order_id)
+    if (!isValid) {
+      return NextResponse.json({ error: 'Pagamento non verificato.' }, { status: 400 })
+    }
 
     const zona = tipo === 'volkswagen' ? 'A' : 'B'
     const prezzo = 20

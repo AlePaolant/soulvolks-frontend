@@ -63,7 +63,8 @@ export async function POST(req: NextRequest) {
     page.drawText(uuid, { x: 30, y: 18, size: 9, font: fontBold, color: panna })
 
     const pdfBytes = await pdfDoc.save()
-    const pdfAttachment = Buffer.from(pdfBytes).toString('base64')
+    const pdfAttachment = Buffer.from(pdfBytes as unknown as ArrayBuffer).toString('base64')
+
 
     const htmlContent = `<!DOCTYPE html>
 <html lang="it">
