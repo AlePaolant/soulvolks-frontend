@@ -8,8 +8,6 @@ import FAQ from './faq'
 import Footer from './footer'
 
 import { QRCodeSVG } from 'qrcode.react'
-import jsPDF from 'jspdf'
-import html2canvas from 'html2canvas'
 
 
 const PAYPAL_CLIENT_ID = process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID || 'sb'
@@ -77,28 +75,6 @@ export default function BigliettiPage() {
       setStep('success')
       await new Promise(resolve => setTimeout(resolve, 1000))
 
-      // Genera PDF dal DOM
-      let pdfBase64 = null
-      const element = document.getElementById('biglietto-pdf')
-      if (element) {
-        const canvas = await html2canvas(element, {
-          backgroundColor: '#fef9ec',
-          scale: 2,
-          logging: false,
-          useCORS: true,
-          onclone: (doc) => {
-            const el = doc.getElementById('biglietto-pdf')
-            if (el) el.style.colorScheme = 'light'
-          }
-        })
-        const imgData = canvas.toDataURL('image/png')
-        const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm' })
-        const pdfWidth = pdf.internal.pageSize.getWidth()
-        const pdfHeight = (canvas.height * pdfWidth) / canvas.width
-        pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight)
-        pdfBase64 = pdf.output('datauristring').split(',')[1]
-      }
-
       // Invia email con PDF
       await fetch('/api/biglietti/email', {
         method: 'POST',
@@ -107,7 +83,6 @@ export default function BigliettiPage() {
           ...formData,
           uuid: data.uuid,
           zona: formData.tipo === 'volkswagen' ? 'A' : 'B',
-          pdfBase64,
         }),
       })
 
@@ -126,31 +101,27 @@ export default function BigliettiPage() {
   }
 
   const downloadPDF = async () => {
-    const element = document.getElementById('biglietto-pdf')
-    if (!element) return
-    const canvas = await html2canvas(element, {
-      backgroundColor: '#fef9ec',
-      scale: 2,
-      logging: false,
-      useCORS: true,
-      onclone: (doc) => {
-        const el = doc.getElementById('biglietto-pdf')
-        if (el) el.style.colorScheme = 'light'
-      }
+    const res = await fetch('/api/biglietti/pdf', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        uuid,
+        nome: formData.nome,
+        cognome: formData.cognome,
+        tipo: formData.tipo,
+        zona: formData.tipo === 'volkswagen' ? 'A' : 'B',
+        targa: formData.targa,
+        modello: formData.modello,
+        anno: formData.anno,
+        n_passeggeri: formData.n_passeggeri,
+      }),
     })
-    const imgData = canvas.toDataURL('image/png')
-    const canvasWidth = canvas.width
-    const canvasHeight = canvas.height
-    const ratio = canvasHeight / canvasWidth
-    const pdfWidth = 210
-    const pdfHeight = pdfWidth * ratio
-    const pdf = new jsPDF({
-      orientation: pdfHeight > pdfWidth ? 'portrait' : 'landscape',
-      unit: 'mm',
-      format: [pdfWidth, pdfHeight]
-    })
-    pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight)
-    pdf.save(`biglietto-mvc2026-${uuid}.pdf`)
+    const blob = await res.blob()
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `biglietto-mvc2026-${uuid.slice(0, 8)}.pdf`
+    a.click()
   }
 
   return (

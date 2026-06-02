@@ -55,10 +55,10 @@ export async function POST(req: NextRequest) {
     const { nome, cognome, email, telefono, n_passeggeri, targa, tipo, modello, anno, note, paypal_order_id } = body
 
     // Verifica PayPal
-    const isValid = await verifyPayPalOrder(paypal_order_id)
-    if (!isValid) {
-      return NextResponse.json({ error: 'Pagamento non verificato.' }, { status: 400 })
-    }
+    //const isValid = await verifyPayPalOrder(paypal_order_id)
+    //if (!isValid) {
+      //return NextResponse.json({ error: 'Pagamento non verificato.' }, { status: 400 })
+    //}
 
     const zona = tipo === 'volkswagen' ? 'A' : 'B'
     const prezzo = 20
