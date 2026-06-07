@@ -13,13 +13,18 @@ export async function POST(req: NextRequest) {
     const zonaLabel = zona === 'A' ? 'Zona A — Parcheggio Volkswagen' : 'Zona B — Area Camping'
 
     // Controlla se il bigliettoè tra i primi 30
-    const countRes = await fetch(
-      `${process.env.NEXT_PUBLIC_STRAPI_API_URL}/bigliettos?pagination[limit]=1&pagination[withCount]=true`,
-      { headers: { Authorization: `Bearer ${process.env.STRAPI_API_TOKEN}` }, cache: 'no-store' }
-    )
-    const countData = await countRes.json()
-    const totalBiglietti = countData.meta?.pagination?.total || 0
-    const isPrimi30 = totalBiglietti <= 30
+    let isPrimi30 = false
+    try {
+      const countRes = await fetch(
+        `${process.env.NEXT_PUBLIC_STRAPI_API_URL}/bigliettos?pagination[limit]=1&pagination[withCount]=true`,
+        { headers: { Authorization: `Bearer ${process.env.STRAPI_API_TOKEN}` }, cache: 'no-store' }
+      )
+      const countData = await countRes.json()
+      const totalBiglietti = countData.meta?.pagination?.total || 0
+      isPrimi30 = totalBiglietti <= 30
+    } catch {
+      isPrimi30 = false
+    }
 
     // Genera PDF lato server
     const qrDataUrl = await QRCode.toDataURL(uuid, { width: 200, margin: 1, color: { dark: '#15120d', light: '#0000' } })
