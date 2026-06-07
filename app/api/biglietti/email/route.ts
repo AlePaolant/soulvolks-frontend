@@ -11,6 +11,16 @@ export async function POST(req: NextRequest) {
 
     const tipoLabel = tipo === 'volkswagen' ? 'Volkswagen' : 'Camper / Tenda'
     const zonaLabel = zona === 'A' ? 'Zona A — Parcheggio Volkswagen' : 'Zona B — Area Camping'
+
+    // Controlla se il bigliettoè tra i primi 30
+    const countRes = await fetch(
+      `${process.env.NEXT_PUBLIC_STRAPI_API_URL}/bigliettos?pagination[limit]=1&pagination[withCount]=true`,
+      { headers: { Authorization: `Bearer ${process.env.STRAPI_API_TOKEN}` }, cache: 'no-store' }
+    )
+    const countData = await countRes.json()
+    const totalBiglietti = countData.meta?.pagination?.total || 0
+    const isPrimi30 = totalBiglietti <= 30
+
     // Genera PDF lato server
     const qrDataUrl = await QRCode.toDataURL(uuid, { width: 200, margin: 1, color: { dark: '#15120d', light: '#0000' } })
     const qrBase64 = qrDataUrl.split(',')[1]
@@ -92,6 +102,13 @@ export async function POST(req: NextRequest) {
         La tua prenotazione per il <strong style="color:#15120d;">Matese Volks Camp 2026</strong> è confermata. Trovi il biglietto in allegato.
       </p>
     </div>
+    ${isPrimi30 ? `
+    <div style="padding:24px 48px;background:#e12713;">
+      <p style="margin:0 0 8px;font-size:12px;font-weight:900;color:white;letter-spacing:3px;text-transform:uppercase;">🎽 Sei tra i primi 30!</p>
+      <p style="margin:0;font-size:14px;color:rgba(255,255,255,0.9);line-height:1.6;">
+        Congratulazioni! Sei tra i primi 30 partecipanti del Matese Volks Camp 2026 — ti aspetta una <strong>maglietta ufficiale</strong> in omaggio all'ingresso dell'evento!
+      </p>
+    </div>` : ''}
     <div style="padding:32px 48px;background:#15120d;border-left:4px solid #e12713;">
       <p style="margin:0 0 8px;font-size:10px;color:rgba(239,238,215,0.4);letter-spacing:3px;text-transform:uppercase;">Codice biglietto</p>
       <p style="margin:0;font-size:15px;font-weight:700;color:#efeed7;letter-spacing:2px;word-break:break-all;font-family:monospace;">${uuid}</p>
