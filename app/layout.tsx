@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Poppins } from "next/font/google";
 import "./globals.css";
+import Script from 'next/script'
 
 const poppins = Poppins({
   subsets: ["latin"],
@@ -66,6 +67,10 @@ export default function RootLayout({
 }) {
   return (
     <html lang="it">
+      <head>
+        <Script src="https://cs.iubenda.com/autoblocking/3729605.js" strategy="beforeInteractive" />
+        <Script src="//cdn.iubenda.com/cs/iubenda_cs.js" strategy="afterInteractive" />
+      </head>
       <body className={`${poppins.variable} antialiased`}>
         {children}
       </body>
