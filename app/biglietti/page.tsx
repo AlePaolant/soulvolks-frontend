@@ -45,7 +45,7 @@ export default function BigliettiPage() {
     modello: '', anno: '', note: '',
   })
   const [uuid, setUuid] = useState('')
-
+  const [infoOpen, setInfoOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
@@ -127,6 +127,61 @@ export default function BigliettiPage() {
   return (
     <PayPalScriptProvider options={{ clientId: PAYPAL_CLIENT_ID, currency: 'EUR' }}>
       <main className="min-h-screen bg-[var(--panna)]">
+
+        {
+          infoOpen && (
+            <div
+              className="fixed inset-0 z-50 flex items-center justify-center p-4"
+              style={{ background: 'rgba(21,18,13,0.75)' }}
+              onClick={() => setInfoOpen(false)}
+            >
+              <div
+                className="bg-[var(--panna)] rounded-2xl max-w-md w-full p-8 relative"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <button
+                  onClick={() => setInfoOpen(false)}
+                  className="absolute top-4 right-4 text-[var(--nero)]/40 hover:text-[var(--nero)] transition-colors font-poppins text-xl leading-none"
+                >
+                  ✕
+                </button>
+
+                <p className="font-poppins font-bold text-xs uppercase tracking-[0.2em] text-[var(--bordeaux)] mb-3">
+                  Area B · Zona Camping
+                </p>
+                <h3 className="font-poppins font-bold text-2xl uppercase tracking-wide text-[var(--nero)] mb-6">
+                  Veicoli ammessi
+                </h3>
+
+                <div className="space-y-4 font-poppins text-sm text-[var(--nero)]/80 leading-relaxed">
+                  <div className="flex gap-3">
+                    <span className="text-lg">✅</span>
+                    <p><strong>Camper e roulotte</strong> — accesso diretto all'area camping.</p>
+                  </div>
+                  <div className="flex gap-3">
+                    <span className="text-lg">✅</span>
+                    <p><strong>Moto</strong> — accesso all'area camping, tenda a carico del partecipante.</p>
+                  </div>
+                  <div className="flex gap-3">
+                    <span className="text-lg">✅</span>
+                    <p><strong>Auto con tenda da tetto</strong> — ammesse nell'area camping.</p>
+                  </div>
+                  <div className="flex gap-3">
+                    <span className="text-lg">❌</span>
+                    <p><strong>Auto normali</strong> — non ammesse nell'area camping. Puoi parcheggiare nel parcheggio adiacente e scendere a piedi nel pianoro: l'accesso a piedi è gratuito.</p>
+                  </div>
+                </div>
+
+                <div className="mt-6 p-4 bg-[var(--nero)] rounded-xl">
+                  <p className="font-poppins text-xs text-[var(--panna-chiaro)]/70 uppercase tracking-widest mb-1">Ricorda</p>
+                  <p className="font-poppins text-sm text-[var(--panna-chiaro)] leading-relaxed">
+                    La quota è <strong>per veicolo</strong>. Tutti i passeggeri e accompagnatori entrano gratis.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )
+        }
 
         {/* ── HERO ─────────────────────────────────────────── */}
         <section className="relative bg-[var(--scuro)] overflow-hidden" style={{ minHeight: 'auto' }}>
@@ -276,11 +331,16 @@ export default function BigliettiPage() {
                       }`} />
                     <Tent size={32} className={`mb-6 ${formData.tipo === 'standard' ? 'text-[var(--bordeaux)]' : 'text-[var(--nero)]/60'}`} />
                     <h3 className="font-poppins font-bold text-xl uppercase tracking-wider mb-2">
-                      Camper / Tenda
+                      Altro veicolo / Moto / Tenda
                     </h3>
-                    <p className={`font-poppins text-sm font-light ${formData.tipo === 'standard' ? 'text-[var(--panna)]/60' : 'text-[var(--nero)]/60'}`}>
-                      Camper attrezzato o tenda da campeggio
-                    </p>
+                    <span
+                      role="button"
+                      tabIndex={0}
+                      onClick={(e) => { e.stopPropagation(); setInfoOpen(true) }}
+                      onKeyDown={(e) => { if (e.key === 'Enter') { e.stopPropagation(); setInfoOpen(true) } }}
+                      className={`font-poppins text-sm font-light underline underline-offset-2 cursor-pointer ${formData.tipo === 'standard' ? 'text-[var(--panna)]/70' : 'text-[var(--nero)]/60'}`}>
+                      Il mio veicolo è ammesso? →
+                    </span>
                     <div className={`mt-6 inline-block px-4 py-1 text-xs uppercase tracking-widest font-poppins font-bold ${formData.tipo === 'standard' ? 'bg-[var(--bordeaux)] text-white' : 'bg-[var(--nero)]/10 text-[var(--nero)]/50'
                       }`}>
                       Zona B · Area Camping
@@ -388,6 +448,12 @@ export default function BigliettiPage() {
                     </p>
                   </div>
                 </div>
+                <p className="font-poppins text-md text-[var(--nero)]/80 text-center px-2">
+                  Procedendo al pagamento accetti i nostri{' '}
+                  <a href="/termini" target="_blank" className="underline text-[var(--nero)] hover:text-[var(--rosso)] transition-colors">
+                    Termini e Condizioni
+                  </a>
+                </p>
                 <button type="submit"
                   className="w-full flex items-center rounded-xl justify-center gap-3 bg-[var(--bordeaux)] text-white py-6 font-poppins font-black uppercase tracking-[0.15em] text-sm hover:bg-[var(--bordeaux)] transition-colors">
                   <CreditCard size={18} />
