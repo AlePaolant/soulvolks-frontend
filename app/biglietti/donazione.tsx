@@ -13,8 +13,11 @@ export default function Donazione() {
   const [custom, setCustom] = useState(false)
   const [step, setStep] = useState<'form' | 'payment' | 'success'>('form')
   const [error, setError] = useState('')
+  const [nome, setNome] = useState('')
+  const [email, setEmail] = useState('')
 
   const importoFinale = typeof importo === 'number' && importo > 0 ? importo : null
+  const datiValidi = nome.trim().length > 0 && /\S+@\S+\.\S+/.test(email)
 
   return (
     <PayPalScriptProvider options={{ clientId: PAYPAL_CLIENT_ID, currency: 'EUR' }}>
@@ -38,6 +41,34 @@ export default function Donazione() {
 
         {step === 'form' && (
           <div className="space-y-6 max-w-lg">
+            {/* Dati donatore */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs uppercase tracking-[0.2em] font-poppins text-[var(--nero)]/40 mb-2">
+                  Nome
+                </label>
+                <input
+                  type="text"
+                  value={nome}
+                  onChange={(e) => setNome(e.target.value)}
+                  placeholder="Il tuo nome"
+                  className="w-full bg-transparent border-b-2 border-[var(--nero)]/30 px-0 py-2 text-[var(--nero)] font-poppins font-black outline-none focus:border-[var(--rosso)] transition-colors"
+                />
+              </div>
+              <div>
+                <label className="block text-xs uppercase tracking-[0.2em] font-poppins text-[var(--nero)]/40 mb-2">
+                  Email
+                </label>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="la-tua@email.it"
+                  className="w-full bg-transparent border-b-2 border-[var(--nero)]/30 px-0 py-2 text-[var(--nero)] font-poppins font-black outline-none focus:border-[var(--rosso)] transition-colors"
+                />
+              </div>
+            </div>
+
             {/* Importi preset */}
             <div className="grid grid-cols-4 gap-3">
               {IMPORTI_PRESET.map((i) => (
@@ -79,7 +110,14 @@ export default function Donazione() {
 
             {importoFinale && (
               <button
-                onClick={() => setStep('payment')}
+                onClick={() => {
+                  if (!datiValidi) {
+                    setError('Inserisci nome e una email valida prima di procedere.')
+                    return
+                  }
+                  setError('')
+                  setStep('payment')
+                }}
                 className="w-full flex items-center justify-center gap-3 bg-[var(--nero)] text-[var(--panna)] py-5 font-poppins font-black uppercase tracking-[0.15em] text-sm hover:bg-[var(--rosso)] transition-colors">
                 <Heart size={18} />
                 Dona €{importoFinale}
@@ -105,6 +143,29 @@ export default function Donazione() {
               })}
               onApprove={async (data, actions) => {
                 await actions.order!.capture()
+
+                // Notifica al backend: verifica server-side + email + telegram
+                try {
+                  const res = await fetch('/api/donazioni', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      nome,
+                      email,
+                      paypal_order_id: data.orderID,
+                    }),
+                  })
+
+                  if (!res.ok) {
+                    const err = await res.json()
+                    console.error('Errore verifica donazione:', err)
+                    // Il pagamento PayPal è già andato a buon fine: mostriamo comunque
+                    // successo al donatore, ma logghiamo l'errore per controllo manuale.
+                  }
+                } catch (err) {
+                  console.error('Errore chiamata /api/donazioni:', err)
+                }
+
                 setStep('success')
               }}
               onError={() => setError('Errore PayPal. Riprova.')}
@@ -122,7 +183,7 @@ export default function Donazione() {
             <h3 className="font-droid text-3xl text-[var(--nero)]">GRAZIE!</h3>
             <p className="font-poppins text-sm text-[var(--nero)]/50">
               La tua donazione di <strong className="text-[var(--nero)]">€{importoFinale}</strong> è stata ricevuta. 
-              Ci aiuti a rendere il Matese Volks Camp ancora più speciale.
+              Ci aiuti a rendere il Matese Volks Camp ancora più speciale. Riceverai una email di conferma a breve.
             </p>
           </div>
         )}
