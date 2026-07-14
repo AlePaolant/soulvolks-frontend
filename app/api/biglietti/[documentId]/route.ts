@@ -5,7 +5,7 @@ const ADMIN_TOKEN = process.env.ADMIN_TOKEN
 
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { documentId: string } }
+  { params }: { params: Promise<{ documentId: string }> }
 ) {
   const auth = req.cookies.get('admin_auth')
   if (!auth || auth.value !== process.env.ADMIN_PASSWORD) {
@@ -13,9 +13,10 @@ export async function PATCH(
   }
 
   try {
+    const { documentId } = await params
     const body = await req.json()
 
-    const res = await fetch(`${STRAPI_URL}/bigliettos/${params.documentId}`, {
+    const res = await fetch(`${STRAPI_URL}/bigliettos/${documentId}`, {
       method: 'PUT',
       headers: {
         Authorization: `Bearer ${ADMIN_TOKEN}`,
