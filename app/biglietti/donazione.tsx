@@ -21,7 +21,7 @@ export default function Donazione() {
 
   return (
     <PayPalScriptProvider options={{ clientId: PAYPAL_CLIENT_ID, currency: 'EUR' }}>
-      <section className="border-t-2 border-[var(--nero)]/10 mt-20 pt-20 mx-auto">
+      <section id="donazioni" className="border-t-2 border-[var(--nero)]/10 mt-20 pt-20 mx-auto">
         
         <div className="flex items-center gap-4 mb-6">
                   <div className="w-8 h-[2px] bg-[var(--rosso)]" />

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import { LayoutDashboard, Ticket, ShoppingBag, Download, LogOut, Menu, RefreshCw, Search, X } from 'lucide-react'
+import { LayoutDashboard, Ticket, ShoppingBag, Download, LogOut, Menu, RefreshCw, Search, X, Edit, Mail, Phone } from 'lucide-react'
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts'
 
 type Biglietto = {
@@ -100,6 +100,10 @@ export default function AdminDashboard() {
     const [bigliettoSelezionato, setBigliettoSelezionato] = useState<Biglietto | null>(null)
     const [periodo, setPeriodo] = useState<Periodo>('settimana')
     const [filtro, setFiltro] = useState('')
+    const [modalModifica, setModalModifica] = useState(false)
+    const [modificaForm, setModificaForm] = useState({ zona: '', tipo: '', modello: '', anno: '' })
+    const [modificaLoading, setModificaLoading] = useState(false)
+    const [modificaError, setModificaError] = useState('')
 
     const fetchBiglietti = useCallback(async () => {
         setLoading(true)
@@ -433,53 +437,170 @@ export default function AdminDashboard() {
             {/* Modal dettaglio biglietto */}
             {bigliettoSelezionato && (
                 <div className="fixed inset-0 bg-black/40 z-50 flex items-end md:items-center justify-center p-4"
-                    onClick={() => setBigliettoSelezionato(null)}>
+                    onClick={() => { setBigliettoSelezionato(null); setModalModifica(false) }}>
                     <div className="bg-white rounded-2xl w-full max-w-md p-6 space-y-4"
                         onClick={e => e.stopPropagation()}>
 
                         <div className="flex items-center justify-between">
-                            <p className="font-poppins font-black text-gray-900 uppercase tracking-wider">Dettaglio biglietto</p>
-                            <button onClick={() => setBigliettoSelezionato(null)} className="text-gray-400 hover:text-gray-700">
+                            <p className="font-poppins font-black text-gray-900 uppercase tracking-wider">
+                                {modalModifica ? 'Modifica biglietto' : 'Dettaglio biglietto'}
+                            </p>
+                            <button onClick={() => { setBigliettoSelezionato(null); setModalModifica(false) }} className="text-gray-400 hover:text-gray-700">
                                 <X size={20} />
                             </button>
                         </div>
 
-                        <div className="space-y-1">
-                            {[
-                                { label: 'Nome', value: `${bigliettoSelezionato.nome} ${bigliettoSelezionato.cognome}` },
-                                { label: 'Email', value: bigliettoSelezionato.email },
-                                { label: 'Telefono', value: bigliettoSelezionato.telefono },
-                                { label: 'Targa', value: bigliettoSelezionato.targa.toUpperCase() },
-                                { label: 'Tipo', value: bigliettoSelezionato.tipo === 'volkswagen' ? 'Volkswagen' : 'Camper / Tenda' },
-                                { label: 'Zona', value: `Zona ${bigliettoSelezionato.zona}` },
-                                { label: 'Passeggeri', value: String(bigliettoSelezionato.n_passeggeri) },
-                                ...(bigliettoSelezionato.modello ? [{ label: 'Veicolo', value: `${bigliettoSelezionato.modello} ${bigliettoSelezionato.anno || ''}` }] : []),
-                                { label: 'Metodo', value: bigliettoSelezionato.metodo_pagamento },
-                                { label: 'Stato', value: bigliettoSelezionato.stato },
-                                { label: 'UUID', value: bigliettoSelezionato.uuid },
-                                { label: 'Data', value: new Date(bigliettoSelezionato.createdAt).toLocaleDateString('it-IT', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' }) },
-                            ].map(item => (
-                                <div key={item.label} className="flex justify-between items-start py-2 border-b border-gray-100">
-                                    <span className="font-poppins text-xs uppercase tracking-[0.2em] text-gray-400 shrink-0 mr-4">{item.label}</span>
-                                    <span className="font-poppins text-sm font-medium text-gray-900 text-right break-all">{item.value}</span>
+                        {!modalModifica ? (
+                            <>
+                                <div className="space-y-1">
+                                    {[
+                                        { label: 'Nome', value: `${bigliettoSelezionato.nome} ${bigliettoSelezionato.cognome}` },
+                                        { label: 'Email', value: bigliettoSelezionato.email },
+                                        { label: 'Telefono', value: bigliettoSelezionato.telefono },
+                                        { label: 'Targa', value: bigliettoSelezionato.targa.toUpperCase() },
+                                        { label: 'Tipo', value: bigliettoSelezionato.tipo === 'volkswagen' ? 'Volkswagen' : 'Camper / Tenda' },
+                                        { label: 'Zona', value: `Zona ${bigliettoSelezionato.zona}` },
+                                        { label: 'Passeggeri', value: String(bigliettoSelezionato.n_passeggeri) },
+                                        ...(bigliettoSelezionato.modello ? [{ label: 'Veicolo', value: `${bigliettoSelezionato.modello} ${bigliettoSelezionato.anno || ''}` }] : []),
+                                        { label: 'Metodo', value: bigliettoSelezionato.metodo_pagamento },
+                                        { label: 'Stato', value: bigliettoSelezionato.stato },
+                                        { label: 'UUID', value: bigliettoSelezionato.uuid },
+                                        { label: 'Data', value: new Date(bigliettoSelezionato.createdAt).toLocaleDateString('it-IT', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' }) },
+                                    ].map(item => (
+                                        <div key={item.label} className="flex justify-between items-start py-2 border-b border-gray-100">
+                                            <span className="font-poppins text-xs uppercase tracking-[0.2em] text-gray-400 shrink-0 mr-4">{item.label}</span>
+                                            <span className="font-poppins text-sm font-medium text-gray-900 text-right break-all">{item.value}</span>
+                                        </div>
+                                    ))}
                                 </div>
-                            ))}
-                        </div>
 
-                        <div className="flex gap-2 pt-2">
-                            <a href={`mailto:${bigliettoSelezionato.email}`}
-                                className="flex-1 py-3 bg-gray-900 text-white font-poppins font-bold text-xs uppercase tracking-widest rounded-xl text-center hover:bg-gray-700 transition-colors">
-                                Scrivi email
-                            </a>
-                            <a href={`tel:${bigliettoSelezionato.telefono}`}
-                                className="flex-1 py-3 border border-gray-200 text-gray-700 font-poppins font-bold text-xs uppercase tracking-widest rounded-xl text-center hover:border-gray-400 transition-colors">
-                                Chiama
-                            </a>
-                        </div>
+                                <div className="flex gap-2 pt-2">
+                                    <button
+                                        onClick={() => {
+                                            setModificaForm({
+                                                zona: bigliettoSelezionato.zona,
+                                                tipo: bigliettoSelezionato.tipo,
+                                                modello: bigliettoSelezionato.modello || '',
+                                                anno: bigliettoSelezionato.anno ? String(bigliettoSelezionato.anno) : '',
+                                            })
+                                            setModalModifica(true)
+                                            setModificaError('')
+                                        }}
+                                        className="flex-1 py-3 bg-[var(--rosso)] text-white font-poppins font-bold text-xs uppercase tracking-widest rounded-xl flex items-center justify-center gap-2 hover:bg-[var(--bordeaux)] transition-colors">
+                                        <Edit size={14} />
+                                        Modifica
+                                    </button>
+                                    <a href={`mailto:${bigliettoSelezionato.email}`}
+                                        className="p-3 border border-gray-200 text-gray-700 rounded-xl hover:border-gray-400 transition-colors flex items-center justify-center">
+                                        <Mail size={16} />
+                                    </a>
+                                    <a href={`tel:${bigliettoSelezionato.telefono}`}
+                                        className="p-3 border border-gray-200 text-gray-700 rounded-xl hover:border-gray-400 transition-colors flex items-center justify-center">
+                                        <Phone size={16} />
+                                    </a>
+                                </div>
+                            </>
+                        ) : (
+                            <div className="space-y-4">
+                                {/* Tipo */}
+                                <div className="grid grid-cols-2 gap-3">
+                                    {[
+                                        { value: 'volkswagen', label: 'Volkswagen', sub: 'Zona A' },
+                                        { value: 'standard', label: 'Camper / Tenda', sub: 'Zona B' },
+                                    ].map(opt => (
+                                        <button key={opt.value} type="button"
+                                            onClick={() => setModificaForm(f => ({
+                                                ...f,
+                                                tipo: opt.value,
+                                                zona: opt.value === 'volkswagen' ? 'A' : 'B',
+                                            }))}
+                                            className={`p-4 border-2 rounded-xl text-left transition-all ${modificaForm.tipo === opt.value
+                                                ? 'border-[var(--nero)] bg-[var(--nero)] text-[var(--panna)]'
+                                                : 'border-gray-200 hover:border-gray-400'
+                                                }`}>
+                                            <p className="font-poppins font-black text-xs uppercase tracking-wider">{opt.label}</p>
+                                            <p className={`font-poppins text-[10px] mt-0.5 ${modificaForm.tipo === opt.value ? 'text-[var(--panna)]/50' : 'text-gray-400'}`}>{opt.sub}</p>
+                                        </button>
+                                    ))}
+                                </div>
+
+                                {/* Modello e anno (solo se volkswagen) */}
+                                {modificaForm.tipo === 'volkswagen' && (
+                                    <div className="grid grid-cols-2 gap-3 p-4 bg-[var(--nero)] rounded-xl">
+                                        <div>
+                                            <label className="block font-poppins text-[10px] uppercase tracking-[0.25em] text-[var(--panna)]/50 mb-1">Modello</label>
+                                            <input
+                                                value={modificaForm.modello}
+                                                onChange={e => setModificaForm(f => ({ ...f, modello: e.target.value }))}
+                                                placeholder="es. T3"
+                                                className="w-full bg-transparent border-b border-[var(--panna)]/20 py-1.5 text-[var(--panna)] font-poppins text-sm outline-none focus:border-[var(--rosso)] transition-colors"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block font-poppins text-[10px] uppercase tracking-[0.25em] text-[var(--panna)]/50 mb-1">Anno</label>
+                                            <input
+                                                type="number" min="1945" max="1995"
+                                                value={modificaForm.anno}
+                                                onChange={e => setModificaForm(f => ({ ...f, anno: e.target.value }))}
+                                                placeholder="es. 1986"
+                                                className="w-full bg-transparent border-b border-[var(--panna)]/20 py-1.5 text-[var(--panna)] font-poppins text-sm outline-none focus:border-[var(--rosso)] transition-colors"
+                                            />
+                                        </div>
+                                    </div>
+                                )}
+
+                                {modificaError && <p className="font-poppins text-xs text-[var(--rosso)]">{modificaError}</p>}
+
+                                <div className="flex gap-2">
+                                    <button
+                                        onClick={() => { setModalModifica(false); setModificaError('') }}
+                                        className="px-4 py-3 border border-gray-200 text-gray-600 font-poppins font-bold text-xs uppercase tracking-widest rounded-xl hover:border-gray-400 transition-colors">
+                                        Annulla
+                                    </button>
+                                    <button
+                                        disabled={modificaLoading}
+                                        onClick={async () => {
+                                            setModificaLoading(true)
+                                            setModificaError('')
+                                            try {
+                                                const payload: any = {
+                                                    zona: modificaForm.zona,
+                                                    tipo: modificaForm.tipo,
+                                                }
+                                                if (modificaForm.tipo === 'volkswagen') {
+                                                    payload.modello = modificaForm.modello
+                                                    payload.anno = modificaForm.anno ? parseInt(modificaForm.anno) : null
+                                                } else {
+                                                    payload.modello = null
+                                                    payload.anno = null
+                                                }
+
+                                                const res = await fetch(`/api/admin/biglietti/${bigliettoSelezionato.documentId}`, {
+                                                    method: 'PATCH',
+                                                    headers: { 'Content-Type': 'application/json' },
+                                                    body: JSON.stringify(payload),
+                                                })
+
+                                                if (!res.ok) throw new Error('Errore aggiornamento')
+
+                                                await fetchBiglietti()
+                                                setBigliettoSelezionato(null)
+                                                setModalModifica(false)
+                                            } catch {
+                                                setModificaError('Errore durante il salvataggio. Riprova.')
+                                            } finally {
+                                                setModificaLoading(false)
+                                            }
+                                        }}
+                                        className="flex-1 py-3 bg-[var(--rosso)] text-white font-poppins font-bold text-xs uppercase tracking-widest rounded-xl hover:bg-[var(--bordeaux)] transition-colors disabled:opacity-50">
+                                        {modificaLoading ? 'Salvataggio...' : 'Salva modifiche'}
+                                    </button>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </div>
-            )
-            }
+            )}
         </div>
     )
 }
