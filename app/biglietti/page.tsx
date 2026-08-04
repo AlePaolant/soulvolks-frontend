@@ -36,14 +36,24 @@ const inputClass = `
 
 const labelClass = `block text-sm uppercase tracking-[0.2em] text-[var(--nero)]/90 mb-0 font-poppins font-medium`
 
-export default function BigliettiPage() {
-  const [step, setStep] = useState<'form' | 'payment' | 'success'>('form')
+const fetchWithRetry = async (url: string, options: RequestInit, retries = 3) => {
+  for (let i = 0; i < retries; i++) {
+    try {
+      const res = await fetch(url, options)
+      if (res.ok) return res
+    } catch { }
+    await new Promise(r => setTimeout(r, 1000 * (i + 1)))
+  }
+}
 
+export default function BigliettiPage() {
+  const [step, setStep] = useState<'form' | 'payment' | 'success' | 'error'>('form')
   const [formData, setFormData] = useState<FormData>({
     nome: '', cognome: '', email: '', telefono: '',
     n_passeggeri: '1', targa: '', tipo: 'standard',
     modello: '', anno: '', note: '',
   })
+  const [paypalOrderId, setPaypalOrderId] = useState('')
   const [uuid, setUuid] = useState('')
   const [infoOpen, setInfoOpen] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -60,6 +70,7 @@ export default function BigliettiPage() {
   }
 
   const handlePaymentSuccess = async (orderId: string) => {
+    setPaypalOrderId(orderId)
     setLoading(true)
     try {
       const res = await fetch('/api/biglietti', {
@@ -70,13 +81,9 @@ export default function BigliettiPage() {
       const data = await res.json()
       if (!res.ok) throw new Error(data.error)
       setUuid(data.uuid)
-
-      // Aspetta che il DOM del biglietto venga renderizzato
       setStep('success')
       await new Promise(resolve => setTimeout(resolve, 1000))
-
-      // Invia email con PDF
-      await fetch('/api/biglietti/email', {
+      await fetchWithRetry('/api/biglietti/email', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -85,16 +92,13 @@ export default function BigliettiPage() {
           zona: formData.tipo === 'volkswagen' ? 'A' : 'B',
         }),
       })
-
-      await fetch('/api/biglietti/telegram', {
+      await fetchWithRetry('/api/biglietti/telegram', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...formData, uuid: data.uuid }),
       })
-
-    } catch (err: any) {
-      setError(err.message || 'Errore durante il pagamento')
-      setStep('payment')
+    } catch {
+      setStep('error')
     } finally {
       setLoading(false)
     }
@@ -614,7 +618,47 @@ export default function BigliettiPage() {
               <p className="font-poppins text-sm text-[var(--nero)]/60 text-center mb-8">
                 Riceverai anche il biglietto via email con il PDF allegato.
               </p>
+              <div className="mt-4 pt-6 border-t border-[var(--nero)]/10 text-center">
+                <p className="font-poppins text-xs text-[var(--nero)]/40">
+                  Non hai ricevuto il biglietto via email?{' '}
+                  <a href="mailto:info@soulvolks.it" className="underline text-[var(--nero)]/60 hover:text-[var(--rosso)] transition-colors">
+                    Scrivici
+                  </a>
+                </p>
+              </div>
 
+            </div>
+          )}
+
+          {step === 'error' && (
+            <div className="max-w-lg mx-auto text-center space-y-6 py-12">
+              <div className="w-16 h-16 rounded-full bg-[var(--bordeaux)]/10 flex items-center justify-center mx-auto">
+                <span className="text-3xl">⚠️</span>
+              </div>
+              <h2 className="font-droid text-[var(--nero)]"
+                style={{ fontSize: 'clamp(2rem, 5vw, 3.5rem)' }}>
+                PAGAMENTO RICEVUTO
+              </h2>
+              <p className="font-poppins text-[var(--nero)]/70 text-sm leading-relaxed">
+                Il tuo pagamento è andato a buon fine, ma si è verificato un problema
+                tecnico nella generazione del biglietto. <strong className="text-[var(--nero)]">Non preoccuparti</strong> —
+                i tuoi soldi sono al sicuro e riceverai il biglietto a breve.
+              </p>
+              <div className="bg-[var(--nero)] rounded-xl p-6 text-left">
+                <p className="font-poppins text-[10px] uppercase tracking-[0.3em] text-[var(--panna)]/50 mb-2">
+                  Codice transazione PayPal
+                </p>
+                <p className="font-mono text-[var(--bordeaux)] font-bold break-all text-sm">
+                  {paypalOrderId}
+                </p>
+              </div>
+              <p className="font-poppins text-sm text-[var(--nero)]/60">
+                Scrivi a{' '}
+                <a href="mailto:info@soulvolks.it" className="underline text-[var(--nero)] hover:text-[var(--rosso)] transition-colors">
+                  info@soulvolks.it
+                </a>
+                {' '}indicando questo codice e ti invieremo il biglietto manualmente.
+              </p>
             </div>
           )}
 
