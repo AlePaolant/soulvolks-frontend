@@ -16,7 +16,19 @@ export async function PATCH(
     const { documentId } = await params
     const body = await req.json()
 
-    const res = await fetch(`${STRAPI_URL}/bigliettos/${documentId}`, {
+    // Cerca il biglietto per uuid per ottenere il documentId reale di Strapi
+    const search = await fetch(
+      `${STRAPI_URL}/bigliettos?filters[uuid][$eq]=${documentId}`,
+      { headers: { Authorization: `Bearer ${ADMIN_TOKEN}` } }
+    )
+    const searchData = await search.json()
+    if (!searchData.data?.length) {
+      return NextResponse.json({ error: 'Biglietto non trovato' }, { status: 404 })
+    }
+
+    const strapiDocumentId = searchData.data[0].documentId
+
+    const res = await fetch(`${STRAPI_URL}/bigliettos/${strapiDocumentId}`, {
       method: 'PUT',
       headers: {
         Authorization: `Bearer ${ADMIN_TOKEN}`,

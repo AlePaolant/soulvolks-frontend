@@ -575,7 +575,7 @@ export default function AdminDashboard() {
                                                     payload.anno = null
                                                 }
 
-                                                const res = await fetch(`/api/admin/biglietti/${bigliettoSelezionato.documentId}`, {
+                                                const res = await fetch(`/api/admin/biglietti/${bigliettoSelezionato.uuid}`, {
                                                     method: 'PATCH',
                                                     headers: { 'Content-Type': 'application/json' },
                                                     body: JSON.stringify(payload),
