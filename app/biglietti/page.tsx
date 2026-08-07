@@ -410,7 +410,7 @@ export default function BigliettiPage() {
                     </div>
                     <div>
                       <label className="block text-[10px] uppercase tracking-[0.2em] text-[var(--panna-chiaro)] mb-1 font-poppins font-medium">Anno *</label>
-                      <input name="anno" type="number" min="1945" max="1995" value={formData.anno} onChange={handleChange} required
+                      <input name="anno" type="number" value={formData.anno} onChange={handleChange} required
                         className="w-full bg-transparent border-b-2 border-[var(--panna-chiaro)]/60 px-0 py-3 text-[var(--panna-chiaro)] placeholder-[var(--panna-chiaro)]/50 outline-none focus:border-[var(--bordeaux)] transition-colors font-poppins text-base"
                         placeholder="es. 1972" />
                     </div>
