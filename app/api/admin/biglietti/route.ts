@@ -12,7 +12,7 @@ export async function GET(req: NextRequest) {
 
     try {
         const res = await fetch(
-            `${STRAPI_URL}/bigliettos?pagination[pageSize]=200&pagination[page]=1&sort=createdAt:desc`,
+            `${STRAPI_URL}/bigliettos?pagination[limit]=-1&sort=createdAt:desc`,
             {
                 headers: { Authorization: `Bearer ${ADMIN_TOKEN}` },
                 cache: 'no-store',
