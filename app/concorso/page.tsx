@@ -191,6 +191,9 @@ export default function ConcorsoPage() {
 
                 {step === 'form' && (
                     <form onSubmit={handleRegister}>
+                        <div className="notice">
+                            ⚠️ Una volta iniziata l&apos;iscrizione, la tua email e il tuo numero restano riservati per evitare doppioni. Completa tutti i passaggi (o scegli un metodo di pagamento) in un&apos;unica sessione: se abbandoni a metà dovrai attendere 48 oreprima di poter riprovare.
+                        </div>
                         <details className="regolamento">
                             <summary>
                                 <span className="summary-arrow">▸</span> Regolamento e premi
@@ -542,6 +545,12 @@ export default function ConcorsoPage() {
           font-family: Arial, sans-serif; background: #fdeaea; color: #a5241f;
           border: 1px solid #f4c6c4;
           padding: 0.8rem 1rem; border-radius: 8px; font-size: 0.87rem; margin-bottom: 1.2rem;
+        }
+        .notice {
+            font-family: Arial, sans-serif; background: #fdf3e0; color: #7a5c1e;
+            border: 1px solid #f0dfa8;
+            padding: 0.8rem 1rem; border-radius: 8px; font-size: 0.83rem;
+            margin-bottom: 1.2rem; line-height: 1.4;
         }
         h2 { color: #2b2b2b; text-transform: uppercase; font-size: 1.2rem; margin: 0 0 0.4rem; letter-spacing: 0.01em; }
         .hint { font-family: Arial, sans-serif; font-size: 0.84rem; color: #777; margin: 0.2rem 0 1rem; }
