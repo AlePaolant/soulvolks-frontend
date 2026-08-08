@@ -37,6 +37,7 @@ function getPayPal(): PayPalNamespace | undefined {
 export default function ConcorsoPage() {
   const [step, setStep] = useState<'form' | 'upload' | 'payment' | 'done'>('form')
   const [entryId, setEntryId] = useState<number | null>(null)
+  const [entryDocId, setEntryDocId] = useState<string | null>(null)
   const [captchaToken, setCaptchaToken] = useState('')
   const [consenso, setConsenso] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -84,6 +85,7 @@ export default function ConcorsoPage() {
       const data = await res.json()
       if (!res.ok) { setError(data.error?.message || 'Errore durante la registrazione'); setLoading(false); return }
       setEntryId(data.id)
+      setEntryDocId(data.documentId)
       setStep('upload')
     } catch {
       setError('Errore di connessione, riprova')
@@ -130,8 +132,7 @@ export default function ConcorsoPage() {
           const res = await fetch('/api/concorso/verify-payment', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ entryId, paypalOrderId: order.id }),
-          })
+            body: JSON.stringify({ entryId: entryDocId, paypalOrderId: order.id }),          })
           setStep(res.ok ? 'done' : 'payment')
           if (!res.ok) setError('Verifica pagamento fallita, contattaci')
           setLoading(false)
@@ -140,7 +141,7 @@ export default function ConcorsoPage() {
     }
     document.body.appendChild(script)
   }, [step])
-  
+
   return (
     <main className="concorso-page">
       <div className="header">
