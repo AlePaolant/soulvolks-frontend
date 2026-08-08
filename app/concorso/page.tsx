@@ -9,33 +9,36 @@ const PAYPAL_CLIENT_ID = process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID
 interface TurnstileInstance {
   render: (selector: string, options: { sitekey: string; callback: (token: string) => void }) => void
 }
-
 interface PayPalOrderActions {
   order: {
-    create: (options: {
-      purchase_units: { amount: { currency_code: string; value: string } }[]
-    }) => Promise<string>
+    create: (options: { purchase_units: { amount: { currency_code: string; value: string } }[] }) => Promise<string>
     capture: () => Promise<{ id: string }>
   }
 }
-
 interface PayPalNamespace {
   Buttons: (options: {
     createOrder: (data: unknown, actions: PayPalOrderActions) => Promise<string>
     onApprove: (data: unknown, actions: PayPalOrderActions) => Promise<void>
   }) => { render: (selector: string) => void }
 }
-
 function getTurnstile(): TurnstileInstance | undefined {
   return (window as unknown as { turnstile?: TurnstileInstance }).turnstile
 }
-
 function getPayPal(): PayPalNamespace | undefined {
   return (window as unknown as { paypal?: PayPalNamespace }).paypal
 }
 
+const STEPS = ['form', 'upload', 'payment', 'done'] as const
+type Step = typeof STEPS[number]
+const STEP_LABELS: Record<Step, string> = {
+  form: 'I tuoi dati',
+  upload: 'Le foto',
+  payment: 'Pagamento',
+  done: 'Fatto',
+}
+
 export default function ConcorsoPage() {
-  const [step, setStep] = useState<'form' | 'upload' | 'payment' | 'done'>('form')
+  const [step, setStep] = useState<Step>('form')
   const [entryId, setEntryId] = useState<number | null>(null)
   const [entryDocId, setEntryDocId] = useState<string | null>(null)
   const [captchaToken, setCaptchaToken] = useState('')
@@ -74,7 +77,7 @@ export default function ConcorsoPage() {
     e.preventDefault()
     setError('')
     if (!consenso) { setError('Devi accettare regolamento e privacy policy'); return }
-    if (!captchaToken) { setError('Completa la verifica captcha'); return }
+    if (!captchaToken) { setError('Completa la verifica di sicurezza'); return }
     setLoading(true)
     try {
       const res = await fetch(`${STRAPI_URL}/concorso/register`, {
@@ -123,221 +126,334 @@ export default function ConcorsoPage() {
       if (!paypal) return
       paypal.Buttons({
         createOrder: (_data, actions) =>
-          actions.order.create({
-            purchase_units: [{ amount: { currency_code: 'EUR', value: '10.00' } }],
-          }),
+          actions.order.create({ purchase_units: [{ amount: { currency_code: 'EUR', value: '10.00' } }] }),
         onApprove: async (_data, actions) => {
           const order = await actions.order.capture()
           setLoading(true)
           const res = await fetch('/api/concorso/verify-payment', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ entryId: entryDocId, paypalOrderId: order.id }),          })
+            body: JSON.stringify({ entryId: entryDocId, paypalOrderId: order.id }),
+          })
           setStep(res.ok ? 'done' : 'payment')
-          if (!res.ok) setError('Verifica pagamento fallita, contattaci')
+          if (!res.ok) setError('Verifica pagamento fallita, contattaci a info@soulvolks.it')
           setLoading(false)
         },
       }).render('#paypal-button-container')
     }
     document.body.appendChild(script)
-  }, [step])
+  }, [step, entryDocId])
+
+  const stepIndex = STEPS.indexOf(step)
 
   return (
-    <main className="concorso-page">
-      <div className="header">
-        <span className="badge">Photography Contest</span>
+    <main className="page">
+      <div className="hero">
+        <span className="eyebrow">Photography Contest</span>
         <h1>Racconti visivi<br />del Volks Camp 2026</h1>
+        <p className="dates">7 · 8 · 9 agosto 2026 — Campitello Matese</p>
       </div>
+
+      {step !== 'done' && (
+        <ol className="stepper">
+          {STEPS.filter(s => s !== 'done').map((s, i) => (
+            <li key={s} className={i === stepIndex ? 'active' : i < stepIndex ? 'complete' : ''}>
+              <span className="dot">{i < stepIndex ? '✓' : i + 1}</span>
+              {STEP_LABELS[s]}
+            </li>
+          ))}
+        </ol>
+      )}
 
       <div className="card">
         {error && <p className="error">{error}</p>}
 
         {step === 'form' && (
           <form onSubmit={handleRegister}>
-            <section className="regolamento">
-              <h2>Regolamento generale</h2>
-              <p>
-                L&apos;Associazione <strong>Soul Volks</strong> organizza il Concorso Fotografico
-                &laquo;Racconti visivi del Matese Volks Camp 2026&raquo;, in occasione del raduno nazionale
-                di auto d&apos;epoca Volkswagen che si terrà a Campitello Matese dal 7 al 9 agosto 2026.
-              </p>
-              <p>
-                Il concorso è aperto a fotografi amatori e professionisti e ha l&apos;obiettivo di raccontare,
-                attraverso le immagini, l&apos;atmosfera dell&apos;evento: auto d&apos;epoca, paesaggi, concerti,
-                mercatini, campeggio e tutto ciò che rende unico il Volks Camp 2026. Saranno ammesse al concorso
-                solo le foto scattate nei giorni <strong>7, 8 e 9 agosto 2026</strong>.
-              </p>
+            <details className="regolamento" open>
+              <summary>Regolamento e premi</summary>
+              <div className="reg-body">
+                <p>
+                  L&apos;Associazione <strong>Soul Volks</strong> organizza il Concorso Fotografico
+                  &laquo;Racconti visivi del Matese Volks Camp 2026&raquo;, in occasione del raduno
+                  nazionale di auto d&apos;epoca Volkswagen a Campitello Matese dal 7 al 9 agosto 2026.
+                </p>
+                <p>
+                  Aperto a fotografi amatori e professionisti. Saranno ammesse solo foto scattate nei
+                  giorni <strong>7, 8 e 9 agosto 2026</strong>.
+                </p>
 
-              <h3>Modalità di partecipazione</h3>
-              <ul>
-                <li>La partecipazione è riservata ai maggiorenni.</li>
-                <li>Quota d&apos;iscrizione: <strong>€10,00</strong>, da versare tramite PayPal in fase di iscrizione.</li>
-                <li>Invio massimo: <strong>4 fotografie</strong> digitali in formato JPG (min. 3000px lato lungo, max 10MB per file).</li>
-                <li>Non sono ammesse fotografie scattate da droni o generate da intelligenza artificiale.</li>
-                <li>Post-produzione leggera consentita (luminosità, contrasto, ecc.).</li>
-                <li>Scadenza invio: <strong>31 agosto 2026</strong>.</li>
-              </ul>
+                <h3>Modalità</h3>
+                <ul>
+                  <li>Partecipazione riservata ai maggiorenni</li>
+                  <li>Quota d&apos;iscrizione <strong>€10,00</strong> tramite PayPal</li>
+                  <li>Massimo <strong>4 fotografie</strong> in JPG (min. 3000px lato lungo, max 10MB l&apos;una)</li>
+                  <li>Niente foto da drone o generate da IA</li>
+                  <li>Scadenza invio: <strong>31 agosto 2026</strong></li>
+                </ul>
 
-              <h3>Premi</h3>
-              <ul className="premi">
-                <li><strong>1° classificato:</strong> Macchina fotografica Nikon F-401X</li>
-                <li><strong>2° classificato:</strong> Caciocavallo &laquo;Vecchiarelli&raquo; Guardiaregia</li>
-                <li><strong>3° classificato:</strong> Bottiglia di Olio Extra Vergine di Oliva Biologico Zappacosta</li>
-                <li><strong>Premio speciale giuria:</strong> Bottiglia di Franciacorta</li>
-                <li><strong>Premio speciale paesaggio:</strong> Kit Pasta Artigianale &laquo;Testa&raquo;</li>
-                <li><strong>Premio speciale originalità:</strong> Felpa Soul Volks</li>
-              </ul>
-              <p>
-                Le foto saranno valutate da una giuria anonima composta da fotografi professionisti,
-                membri dell&apos;organizzazione e personalità del settore culturale. Il giudizio della
-                giuria è insindacabile. Mostra e premiazioni presso &laquo;Vento Bar&raquo; Ferrazzano.
-              </p>
+                <h3>Premi</h3>
+                <ul className="premi">
+                  <li><span className="rank">1°</span> Macchina fotografica Nikon F-401X</li>
+                  <li><span className="rank">2°</span> Caciocavallo &laquo;Vecchiarelli&raquo; Guardiaregia</li>
+                  <li><span className="rank">3°</span> Olio EVO Biologico Zappacosta</li>
+                  <li><span className="rank">★</span> Premio giuria — Bottiglia di Franciacorta</li>
+                  <li><span className="rank">★</span> Premio paesaggio — Kit Pasta &laquo;Testa&raquo;</li>
+                  <li><span className="rank">★</span> Premio originalità — Felpa Soul Volks</li>
+                </ul>
 
-              <h3>Utilizzo delle immagini</h3>
-              <p>
-                L&apos;autore conserva la titolarità delle opere, ma concede all&apos;organizzazione un
-                diritto non esclusivo e gratuito per documentazione e promozione dell&apos;edizione 2026,
-                futuri materiali di comunicazione cartacei e digitali, mostre, sito e social media, e uso
-                interno per attività culturali dell&apos;associazione. Nessun utilizzo commerciale sarà
-                effettuato senza consenso scritto dell&apos;autore.
-              </p>
-
-              <h3>Liberatoria e responsabilità</h3>
-              <p>
-                L&apos;autore garantisce di essere l&apos;unico titolare dei diritti sulle immagini
-                inviate, che le foto non ledono diritti di terzi né violano leggi vigenti, e di avere
-                il consenso di eventuali soggetti riconoscibili nelle immagini.
-              </p>
-            </section>
+                <p className="small">
+                  Giuria anonima, giudizio insindacabile. Mostra e premiazione presso &laquo;Vento Bar&raquo;
+                  Ferrazzano. L&apos;autore conserva la titolarità delle opere; concede all&apos;organizzazione
+                  un diritto non esclusivo e gratuito per documentazione, promozione, mostre e social media
+                  legati all&apos;edizione 2026. Nessun uso commerciale senza consenso scritto.
+                </p>
+              </div>
+            </details>
 
             <label className="consenso">
               <input type="checkbox" checked={consenso} onChange={e => setConsenso(e.target.checked)} />
-              Ho letto e accetto il regolamento e la privacy policy
+              <span>Ho letto e accetto il regolamento e la privacy policy</span>
             </label>
 
-            <h2>I tuoi dati</h2>
             <div className="fields">
-              <input placeholder="Nome" required value={form.nome} onChange={e => setForm({ ...form, nome: e.target.value })} />
-              <input placeholder="Cognome" required value={form.cognome} onChange={e => setForm({ ...form, cognome: e.target.value })} />
-              <input placeholder="Email" type="email" required value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} />
-              <input placeholder="Telefono" required value={form.telefono} onChange={e => setForm({ ...form, telefono: e.target.value })} />
-              <textarea placeholder="Note (opzionale)" value={form.note} onChange={e => setForm({ ...form, note: e.target.value })} />
+              <div className="field">
+                <label>Nome</label>
+                <input required value={form.nome} onChange={e => setForm({ ...form, nome: e.target.value })} />
+              </div>
+              <div className="field">
+                <label>Cognome</label>
+                <input required value={form.cognome} onChange={e => setForm({ ...form, cognome: e.target.value })} />
+              </div>
+              <div className="field">
+                <label>Email</label>
+                <input type="email" required value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} />
+              </div>
+              <div className="field">
+                <label>Telefono</label>
+                <input required value={form.telefono} onChange={e => setForm({ ...form, telefono: e.target.value })} />
+              </div>
+              <div className="field full">
+                <label>Note <span className="opt">(opzionale)</span></label>
+                <textarea rows={3} value={form.note} onChange={e => setForm({ ...form, note: e.target.value })} />
+              </div>
             </div>
 
             <div id="turnstile-widget" className="turnstile" />
 
-            <button type="submit" disabled={loading}>{loading ? 'Invio...' : 'Continua'}</button>
+            <button type="submit" disabled={loading} className="btn-primary">
+              {loading ? 'Invio in corso…' : 'Continua'}
+            </button>
           </form>
         )}
 
         {step === 'upload' && (
           <form onSubmit={handleUpload}>
             <h2>Carica le tue foto</h2>
-            <p className="hint">Massimo 4 foto, formato JPG, min. 3000px lato lungo, max 10MB ciascuna.</p>
-            {[0, 1, 2, 3].map(i => (
-              <div key={i} className="foto-row">
-                <input type="file" accept="image/jpeg" onChange={e => {
-                  const nf = [...foto]; nf[i] = e.target.files?.[0] || null; setFoto(nf)
-                }} />
-                <input placeholder="Titolo (opzionale)" value={titoli[i]} onChange={e => {
-                  const nt = [...titoli]; nt[i] = e.target.value; setTitoli(nt)
-                }} />
-              </div>
-            ))}
-            <button type="submit" disabled={loading}>{loading ? 'Caricamento...' : 'Continua al pagamento'}</button>
+            <p className="hint">Fino a 4 foto, formato JPG, min. 3000px lato lungo, max 10MB ciascuna.</p>
+            <div className="foto-grid">
+              {[0, 1, 2, 3].map(i => (
+                <div key={i} className={`foto-slot ${foto[i] ? 'filled' : ''}`}>
+                  <label className="dropzone">
+                    <input
+                      type="file"
+                      accept="image/jpeg"
+                      onChange={e => {
+                        const nf = [...foto]; nf[i] = e.target.files?.[0] || null; setFoto(nf)
+                      }}
+                    />
+                    {foto[i]
+                      ? <span className="filename">📷 {foto[i]!.name}</span>
+                      : <span>+ Foto {i + 1}</span>}
+                  </label>
+                  <input
+                    className="titolo-input"
+                    placeholder="Titolo (opzionale)"
+                    value={titoli[i]}
+                    onChange={e => { const nt = [...titoli]; nt[i] = e.target.value; setTitoli(nt) }}
+                  />
+                </div>
+              ))}
+            </div>
+            <button type="submit" disabled={loading} className="btn-primary">
+              {loading ? 'Caricamento…' : 'Continua al pagamento'}
+            </button>
           </form>
         )}
 
         {step === 'payment' && (
           <div className="payment">
             <h2>Completa l&apos;iscrizione</h2>
-            <p>Quota di partecipazione: <strong>€10,00</strong></p>
+            <p className="quota">Quota di partecipazione <strong>€10,00</strong></p>
             <div id="paypal-button-container" />
-            {loading && <p>Verifica pagamento in corso...</p>}
+            {loading && <p className="hint">Verifica pagamento in corso…</p>}
           </div>
         )}
 
         {step === 'done' && (
           <div className="done">
+            <span className="check">✓</span>
             <h2>Iscrizione completata!</h2>
-            <p>Grazie per aver partecipato. Riceverai una conferma via email.</p>
+            <p>Grazie per aver partecipato al concorso. Riceverai una conferma via email.</p>
+            <p className="small">In bocca al lupo per il Volks Camp 2026 🚐</p>
           </div>
         )}
       </div>
 
       <style jsx>{`
-        .concorso-page {
+        .page {
           background: #8a9683;
           min-height: 100vh;
-          padding: 3rem 1.5rem;
+          padding: 2.5rem 1.25rem 4rem;
           font-family: Georgia, 'Times New Roman', serif;
           color: #2b2b2b;
         }
-        .header { max-width: 640px; margin: 0 auto 2rem; }
-        .badge {
-          display: inline-block;
+        .hero { max-width: 680px; margin: 0 auto 1.5rem; text-align: left; }
+        .eyebrow {
           font-family: Arial, sans-serif;
-          letter-spacing: 0.2em;
-          font-size: 0.75rem;
+          letter-spacing: 0.25em;
+          font-size: 0.72rem;
           color: #f5f3ec;
           text-transform: uppercase;
-          margin-bottom: 0.5rem;
+          display: inline-block;
+          margin-bottom: 0.4rem;
         }
-        h1 {
-          color: #e2572b;
-          font-size: 2.2rem;
-          line-height: 1.15;
+        h1 { color: #e2572b; font-size: 2.1rem; line-height: 1.15; margin: 0 0 0.4rem; text-transform: uppercase; }
+        .dates {
+          font-family: Arial, sans-serif;
+          color: #f5f3ec;
+          font-size: 0.95rem;
+          letter-spacing: 0.03em;
           margin: 0;
-          text-transform: uppercase;
         }
+        .stepper {
+          max-width: 680px;
+          margin: 0 auto 1.25rem;
+          display: flex;
+          list-style: none;
+          padding: 0;
+          gap: 0.5rem;
+          font-family: Arial, sans-serif;
+        }
+        .stepper li {
+          flex: 1;
+          display: flex;
+          align-items: center;
+          gap: 0.4rem;
+          font-size: 0.78rem;
+          color: #eae7dc;
+          opacity: 0.6;
+        }
+        .stepper li.active, .stepper li.complete { opacity: 1; }
+        .stepper .dot {
+          width: 22px; height: 22px;
+          border-radius: 50%;
+          background: #f5f3ec;
+          color: #2b2b2b;
+          display: flex; align-items: center; justify-content: center;
+          font-size: 0.72rem; font-weight: bold;
+          flex-shrink: 0;
+        }
+        .stepper li.active .dot { background: #e2572b; color: white; }
+        .stepper li.complete .dot { background: #3f5b3f; color: white; }
         .card {
-          max-width: 640px;
+          max-width: 680px;
           margin: 0 auto;
           background: #f5f3ec;
-          border-radius: 4px;
-          padding: 2rem;
-          box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+          border-radius: 6px;
+          padding: 1.75rem 2rem 2rem;
+          box-shadow: 0 10px 30px rgba(0,0,0,0.18);
+          border-top: 5px solid #e2572b;
         }
-        h2 { color: #e2572b; text-transform: uppercase; font-size: 1.1rem; margin-top: 1.5rem; }
-        h3 { color: #2b2b2b; font-size: 1rem; margin-top: 1.2rem; text-transform: uppercase; letter-spacing: 0.03em; }
-        .regolamento p, .regolamento li { font-family: Arial, sans-serif; font-size: 0.92rem; line-height: 1.5; }
-        .premi li { margin-bottom: 0.3rem; }
+        .regolamento { font-family: Arial, sans-serif; margin-bottom: 1rem; }
+        .regolamento summary {
+          cursor: pointer;
+          font-weight: bold;
+          color: #e2572b;
+          text-transform: uppercase;
+          font-size: 0.95rem;
+          padding: 0.3rem 0;
+        }
+        .reg-body { font-size: 0.9rem; line-height: 1.55; padding-top: 0.5rem; }
+        .reg-body h3 { font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.03em; margin: 1rem 0 0.4rem; }
+        .reg-body ul { margin: 0.3rem 0; padding-left: 1.1rem; }
+        .reg-body li { margin-bottom: 0.25rem; }
+        .premi { list-style: none; padding: 0; }
+        .premi li { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.35rem; }
+        .rank {
+          background: #e2572b; color: white; font-weight: bold;
+          border-radius: 4px; padding: 0.1rem 0.5rem; font-size: 0.75rem; flex-shrink: 0;
+        }
+        .small { font-size: 0.82rem; color: #666; }
         .consenso {
-          display: flex; align-items: center; gap: 0.5rem;
-          font-family: Arial, sans-serif; font-size: 0.9rem;
-          margin: 1.5rem 0; padding: 0.8rem; background: #eae7dc; border-radius: 4px;
+          display: flex; align-items: flex-start; gap: 0.6rem;
+          font-family: Arial, sans-serif; font-size: 0.88rem;
+          background: #eae7dc; border-radius: 5px;
+          padding: 0.8rem 1rem; margin: 1.2rem 0;
         }
-        .fields { display: flex; flex-direction: column; gap: 0.7rem; }
+        .consenso input { margin-top: 0.15rem; }
+        .fields { display: grid; grid-template-columns: 1fr 1fr; gap: 0.8rem; font-family: Arial, sans-serif; }
+        .field { display: flex; flex-direction: column; gap: 0.3rem; }
+        .field.full { grid-column: 1 / -1; }
+        .field label { font-size: 0.78rem; font-weight: bold; color: #444; }
+        .field .opt { font-weight: normal; color: #888; }
         input, textarea {
           font-family: Arial, sans-serif;
-          padding: 0.6rem;
-          border: 1px solid #ccc;
-          border-radius: 4px;
-          font-size: 0.95rem;
+          padding: 0.6rem 0.7rem;
+          border: 1px solid #cfc9ba;
+          border-radius: 5px;
+          font-size: 0.92rem;
+          background: white;
         }
-        .turnstile { margin: 1rem 0; }
-        button {
-          background: #e2572b;
-          color: white;
-          border: none;
-          padding: 0.8rem 1.5rem;
-          border-radius: 4px;
-          font-family: Arial, sans-serif;
-          font-weight: bold;
-          text-transform: uppercase;
-          letter-spacing: 0.05em;
-          cursor: pointer;
-          margin-top: 1rem;
+        input:focus, textarea:focus { outline: 2px solid #e2572b; outline-offset: 1px; }
+        .turnstile { margin: 1.3rem 0 0.5rem; }
+        .btn-primary {
+          background: #e2572b; color: white; border: none;
+          padding: 0.85rem 1.6rem; border-radius: 5px;
+          font-family: Arial, sans-serif; font-weight: bold;
+          text-transform: uppercase; letter-spacing: 0.04em;
+          cursor: pointer; margin-top: 1.2rem; width: 100%;
         }
-        button:disabled { opacity: 0.6; cursor: not-allowed; }
+        .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
         .error {
-          font-family: Arial, sans-serif;
-          background: #fde2e2; color: #a02020;
-          padding: 0.7rem; border-radius: 4px; font-size: 0.9rem;
+          font-family: Arial, sans-serif; background: #fde2e2; color: #a02020;
+          padding: 0.7rem 0.9rem; border-radius: 5px; font-size: 0.88rem; margin-bottom: 1rem;
         }
+        h2 { color: #e2572b; text-transform: uppercase; font-size: 1.15rem; margin-top: 0; }
         .hint { font-family: Arial, sans-serif; font-size: 0.85rem; color: #666; }
-        .foto-row { display: flex; gap: 0.7rem; margin-bottom: 0.8rem; }
-        .foto-row input[type="text"], .foto-row input:not([type="file"]) { flex: 1; }
+        .foto-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.9rem; margin: 1rem 0 0.5rem; }
+        .foto-slot { display: flex; flex-direction: column; gap: 0.4rem; }
+        .dropzone {
+          border: 2px dashed #cfc9ba;
+          border-radius: 6px;
+          padding: 1.4rem 0.6rem;
+          text-align: center;
+          font-family: Arial, sans-serif;
+          font-size: 0.85rem;
+          color: #888;
+          cursor: pointer;
+          background: white;
+          transition: border-color 0.15s;
+        }
+        .foto-slot.filled .dropzone { border-color: #3f5b3f; color: #3f5b3f; }
+        .dropzone input { display: none; }
+        .filename { word-break: break-all; }
+        .titolo-input { font-size: 0.82rem; padding: 0.4rem 0.6rem; }
+        .payment { text-align: center; }
+        .quota { font-family: Arial, sans-serif; font-size: 1rem; margin-bottom: 1.2rem; }
+        .done { text-align: center; padding: 1.5rem 0; }
+        .check {
+          display: inline-flex; align-items: center; justify-content: center;
+          width: 56px; height: 56px; border-radius: 50%;
+          background: #3f5b3f; color: white; font-size: 1.8rem;
+          margin-bottom: 1rem;
+        }
+        .done p { font-family: Arial, sans-serif; }
+        @media (max-width: 560px) {
+          .fields { grid-template-columns: 1fr; }
+          .foto-grid { grid-template-columns: 1fr; }
+          .stepper li span:not(.dot) { display: none; }
+        }
       `}</style>
     </main>
   )
