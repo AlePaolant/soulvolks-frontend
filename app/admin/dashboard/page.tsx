@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import { LayoutDashboard, Ticket, ShoppingBag, Download, LogOut, Menu, RefreshCw, Search, X, Edit, Mail, Phone } from 'lucide-react'
+import { LayoutDashboard, Ticket, ShoppingBag, Download, LogOut, Menu, RefreshCw, Search, X, Edit, Mail, Phone, Camera, CheckCircle2, Archive } from 'lucide-react'
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts'
 
 type Biglietto = {
@@ -40,13 +40,14 @@ type Stats = {
     associati: number
 }
 
-type Sezione = 'dashboard' | 'biglietti' | 'cassa'
+type Sezione = 'dashboard' | 'biglietti' | 'cassa' | 'concorso'
 type Periodo = 'giorno' | 'settimana' | 'mese'
 
 const navItems = [
     { key: 'dashboard' as Sezione, label: 'Dashboard', icon: LayoutDashboard },
     { key: 'biglietti' as Sezione, label: 'Biglietti', icon: Ticket },
     { key: 'cassa' as Sezione, label: 'Cassa', icon: ShoppingBag },
+    { key: 'concorso' as Sezione, label: 'Concorso', icon: Camera },
 ]
 
 function buildChartData(biglietti: Biglietto[], periodo: Periodo) {
@@ -431,6 +432,9 @@ export default function AdminDashboard() {
                     {/* CASSA */}
                     {sezione === 'cassa' && <CassaForm onSuccess={fetchBiglietti} />}
 
+                    {/* CONCORSO */}
+                    {sezione === 'concorso' && <ConcorsoSection />}
+
                 </div>
             </div>
 
@@ -722,6 +726,223 @@ function CassaForm({ onSuccess }: { onSuccess: () => void }) {
                     {loading ? 'Creazione...' : 'Crea biglietto'}
                 </button>
             </form>
+        </div>
+    )
+}
+
+type ConcorsoFoto = { id: number, nomeFile: string, titolo: string | null, nomeOriginale: string, path: string }
+type ConcorsoEntry = {
+    id: number
+    documentId: string
+    nome: string
+    cognome: string
+    email: string
+    telefono: string
+    note: string | null
+    statoPagamento: string
+    paypalOrderId: string | null
+    importo: number
+    createdAt: string
+    foto: ConcorsoFoto[]
+}
+
+const statoLabel: Record<string, string> = {
+    in_attesa: 'In attesa',
+    in_attesa_contanti: 'Attesa contanti',
+    in_attesa_bonifico: 'Attesa bonifico',
+    pagato_paypal: 'Pagato PayPal',
+    pagato_contanti: 'Pagato contanti',
+    pagato_bonifico: 'Pagato bonifico',
+}
+
+const statoColor: Record<string, string> = {
+    in_attesa: 'bg-gray-100 text-gray-600',
+    in_attesa_contanti: 'bg-amber-100 text-amber-700',
+    in_attesa_bonifico: 'bg-amber-100 text-amber-700',
+    pagato_paypal: 'bg-green-100 text-green-700',
+    pagato_contanti: 'bg-green-100 text-green-700',
+    pagato_bonifico: 'bg-green-100 text-green-700',
+}
+
+function ConcorsoSection() {
+    const [entries, setEntries] = useState<ConcorsoEntry[]>([])
+    const [loading, setLoading] = useState(true)
+    const [search, setSearch] = useState('')
+    const [selezionato, setSelezionato] = useState<ConcorsoEntry | null>(null)
+    const [segnaLoading, setSegnaLoading] = useState(false)
+
+    const fetchEntries = useCallback(async () => {
+        setLoading(true)
+        try {
+            const res = await fetch('/api/concorso/admin/lista')
+            const data = await res.json()
+            setEntries(data.data || [])
+        } catch { }
+        setLoading(false)
+    }, [])
+
+    useEffect(() => { fetchEntries() }, [fetchEntries])
+
+    const filtered = entries.filter(e =>
+        `${e.nome} ${e.cognome} ${e.email} ${e.telefono}`.toLowerCase().includes(search.toLowerCase())
+    )
+
+    const handleDownloadTutto = () => {
+        window.open('/api/concorso/admin/download-tutto', '_blank')
+    }
+    const handleExportCsv = () => {
+        window.open('/api/concorso/admin/csv', '_blank')
+    }
+    const handleDownloadSingolo = (id: number) => {
+        window.open(`/api/concorso/admin/download/${id}`, '_blank')
+    }
+
+    const handleSegnaPagato = async (id: number, metodo: 'contanti' | 'bonifico') => {
+        setSegnaLoading(true)
+        try {
+            await fetch('/api/concorso/admin/segna-pagato', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id, metodo }),
+            })
+            await fetchEntries()
+            setSelezionato(null)
+        } catch { }
+        setSegnaLoading(false)
+    }
+
+    return (
+        <div className="space-y-6">
+            <div className="flex items-center justify-between flex-wrap gap-3">
+                <h2 className="font-poppins font-black text-[var(--nero)] text-2xl uppercase tracking-wider">Concorso Fotografico</h2>
+                <div className="flex items-center gap-2">
+                    <button onClick={handleDownloadTutto}
+                        className="flex items-center gap-2 bg-white border border-gray-200 text-gray-700 px-4 py-2.5 font-poppins font-bold uppercase tracking-[0.1em] text-xs hover:border-gray-400 transition-colors rounded-xl">
+                        <Archive size={14} />
+                        Scarica tutte le foto
+                    </button>
+                    <button onClick={handleExportCsv}
+                        className="flex items-center gap-2 bg-gray-900 text-white px-4 py-2.5 font-poppins font-bold uppercase tracking-[0.1em] text-xs hover:bg-gray-700 transition-colors rounded-xl">
+                        <Download size={14} />
+                        Esporta CSV
+                    </button>
+                    <button onClick={fetchEntries}
+                        className="flex items-center gap-1 text-[var(--nero)]/40 hover:text-[var(--nero)] transition-colors font-poppins text-xs uppercase tracking-widest">
+                        <RefreshCw size={13} />
+                    </button>
+                </div>
+            </div>
+
+            <div className="relative">
+                <Search size={13} className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--nero)]/30" />
+                <input value={search} onChange={e => setSearch(e.target.value)}
+                    placeholder="Cerca per nome, email, telefono..."
+                    className="w-full bg-white border border-[var(--nero)]/10 rounded-xl pl-10 pr-4 py-3 font-poppins text-sm text-[var(--nero)] outline-none focus:border-[var(--rosso)] transition-colors" />
+            </div>
+
+            {loading ? (
+                <p className="font-poppins text-sm text-[var(--nero)]/40 uppercase tracking-widest animate-pulse">Caricamento...</p>
+            ) : (
+                <div className="space-y-2">
+                    {filtered.map(e => (
+                        <div key={e.id} onClick={() => setSelezionato(e)}
+                            className="bg-white border border-gray-200 rounded-xl p-4 flex items-center justify-between gap-4 cursor-pointer hover:border-gray-400 hover:shadow-sm transition-all">
+                            <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2 mb-1 flex-wrap">
+                                    <p className="font-poppins font-bold text-[var(--nero)] text-sm">{e.nome} {e.cognome}</p>
+                                    <span className={`px-2 py-0.5 text-[9px] font-poppins font-black uppercase rounded-full ${statoColor[e.statoPagamento] || 'bg-gray-100 text-gray-600'}`}>
+                                        {statoLabel[e.statoPagamento] || e.statoPagamento}
+                                    </span>
+                                    <span className="px-2 py-0.5 text-[9px] font-poppins font-black uppercase rounded-full bg-gray-100 text-gray-600">
+                                        {e.foto?.length || 0} foto
+                                    </span>
+                                </div>
+                                <div className="flex items-center gap-3 flex-wrap">
+                                    <span className="font-poppins text-xs text-[var(--nero)]/40">{e.email}</span>
+                                    <span className="font-poppins text-xs text-[var(--nero)]/40">{new Date(e.createdAt).toLocaleDateString('it-IT', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</span>
+                                </div>
+                            </div>
+                            <div className="flex items-center gap-1 shrink-0" onClick={ev => ev.stopPropagation()}>
+                                <a href={`mailto:${e.email}`} className="p-2 border border-gray-200 text-gray-500 rounded-lg hover:border-gray-400 transition-colors">
+                                    <Mail size={14} />
+                                </a>
+                                <a href={`tel:${e.telefono}`} className="p-2 border border-gray-200 text-gray-500 rounded-lg hover:border-gray-400 transition-colors">
+                                    <Phone size={14} />
+                                </a>
+                                {e.foto?.length > 0 && (
+                                    <button onClick={() => handleDownloadSingolo(e.id)}
+                                        className="p-2 border border-gray-200 text-gray-500 rounded-lg hover:border-gray-400 transition-colors">
+                                        <Download size={14} />
+                                    </button>
+                                )}
+                            </div>
+                        </div>
+                    ))}
+                    {filtered.length === 0 && (
+                        <p className="font-poppins text-sm text-[var(--nero)]/40 text-center py-16 uppercase tracking-widest">Nessuna iscrizione trovata</p>
+                    )}
+                </div>
+            )}
+
+            {/* Modal dettaglio */}
+            {selezionato && (
+                <div className="fixed inset-0 bg-black/40 z-50 flex items-end md:items-center justify-center p-4"
+                    onClick={() => setSelezionato(null)}>
+                    <div className="bg-white rounded-2xl w-full max-w-md p-6 space-y-4" onClick={e => e.stopPropagation()}>
+                        <div className="flex items-center justify-between">
+                            <p className="font-poppins font-black text-gray-900 uppercase tracking-wider">Dettaglio iscrizione</p>
+                            <button onClick={() => setSelezionato(null)} className="text-gray-400 hover:text-gray-700">
+                                <X size={20} />
+                            </button>
+                        </div>
+
+                        <div className="space-y-1">
+                            {[
+                                { label: 'Nome', value: `${selezionato.nome} ${selezionato.cognome}` },
+                                { label: 'Email', value: selezionato.email },
+                                { label: 'Telefono', value: selezionato.telefono },
+                                { label: 'Note', value: selezionato.note || '—' },
+                                { label: 'Stato', value: statoLabel[selezionato.statoPagamento] || selezionato.statoPagamento },
+                                { label: 'PayPal Order', value: selezionato.paypalOrderId || '—' },
+                                { label: 'Foto caricate', value: String(selezionato.foto?.length || 0) },
+                                { label: 'Data', value: new Date(selezionato.createdAt).toLocaleDateString('it-IT', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' }) },
+                            ].map(item => (
+                                <div key={item.label} className="flex justify-between items-start py-2 border-b border-gray-100">
+                                    <span className="font-poppins text-xs uppercase tracking-[0.2em] text-gray-400 shrink-0 mr-4">{item.label}</span>
+                                    <span className="font-poppins text-sm font-medium text-gray-900 text-right break-all">{item.value}</span>
+                                </div>
+                            ))}
+                        </div>
+
+                        {(selezionato.statoPagamento === 'in_attesa_contanti' || selezionato.statoPagamento === 'in_attesa_bonifico') && (
+                            <button
+                                disabled={segnaLoading}
+                                onClick={() => handleSegnaPagato(selezionato.id, selezionato.statoPagamento === 'in_attesa_contanti' ? 'contanti' : 'bonifico')}
+                                className="w-full py-3 bg-green-600 text-white font-poppins font-bold text-xs uppercase tracking-widest rounded-xl flex items-center justify-center gap-2 hover:bg-green-700 transition-colors disabled:opacity-50">
+                                <CheckCircle2 size={14} />
+                                {segnaLoading ? 'Salvataggio...' : 'Segna come pagato'}
+                            </button>
+                        )}
+
+                        <div className="flex gap-2 pt-1">
+                            <a href={`mailto:${selezionato.email}`}
+                                className="flex-1 py-3 border border-gray-200 text-gray-700 rounded-xl hover:border-gray-400 transition-colors flex items-center justify-center gap-2 font-poppins text-xs font-bold uppercase tracking-widest">
+                                <Mail size={14} /> Email
+                            </a>
+                            <a href={`tel:${selezionato.telefono}`}
+                                className="flex-1 py-3 border border-gray-200 text-gray-700 rounded-xl hover:border-gray-400 transition-colors flex items-center justify-center gap-2 font-poppins text-xs font-bold uppercase tracking-widest">
+                                <Phone size={14} /> Chiama
+                            </a>
+                            {selezionato.foto?.length > 0 && (
+                                <button onClick={() => handleDownloadSingolo(selezionato.id)}
+                                    className="flex-1 py-3 bg-[var(--nero)] text-white rounded-xl hover:bg-[var(--rosso)] transition-colors flex items-center justify-center gap-2 font-poppins text-xs font-bold uppercase tracking-widest">
+                                    <Download size={14} /> Foto
+                                </button>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     )
 }
