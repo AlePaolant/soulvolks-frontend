@@ -747,6 +747,7 @@ type ConcorsoEntry = {
 }
 
 const statoLabel: Record<string, string> = {
+    gratuito: 'Gratuito',
     in_attesa: 'In attesa',
     in_attesa_contanti: 'Attesa contanti',
     in_attesa_bonifico: 'Attesa bonifico',
@@ -756,6 +757,7 @@ const statoLabel: Record<string, string> = {
 }
 
 const statoColor: Record<string, string> = {
+    gratuito: 'bg-green-100 text-green-700',
     in_attesa: 'bg-gray-100 text-gray-600',
     in_attesa_contanti: 'bg-amber-100 text-amber-700',
     in_attesa_bonifico: 'bg-amber-100 text-amber-700',

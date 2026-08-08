@@ -4,34 +4,18 @@ import { useState, useEffect } from 'react'
 
 const STRAPI_URL = process.env.NEXT_PUBLIC_STRAPI_API_URL
 const TURNSTILE_SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY
-const PAYPAL_CLIENT_ID = process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID
 
 interface TurnstileInstance {
     render: (selector: string, options: { sitekey: string; callback: (token: string) => void }) => void
 }
-interface PayPalOrderActions {
-    order: {
-        create: (options: { purchase_units: { amount: { currency_code: string; value: string } }[] }) => Promise<string>
-        capture: () => Promise<{ id: string }>
-    }
-}
-interface PayPalNamespace {
-    Buttons: (options: {
-        createOrder: (data: unknown, actions: PayPalOrderActions) => Promise<string>
-        onApprove: (data: unknown, actions: PayPalOrderActions) => Promise<void>
-    }) => { render: (selector: string) => void }
-}
 function getTurnstile(): TurnstileInstance | undefined {
     return (window as unknown as { turnstile?: TurnstileInstance }).turnstile
 }
-function getPayPal(): PayPalNamespace | undefined {
-    return (window as unknown as { paypal?: PayPalNamespace }).paypal
-}
 
-const STEPS = ['form', 'upload', 'payment', 'done'] as const
+const STEPS = ['form', 'upload', 'done'] as const
 type Step = typeof STEPS[number]
 const STEP_LABELS: Record<Step, string> = {
-    form: 'I tuoi dati', upload: 'Le foto', payment: 'Pagamento', done: 'Fatto',
+    form: 'I tuoi dati', upload: 'Le foto', done: 'Fatto',
 }
 
 export default function ConcorsoPage() {
@@ -107,52 +91,7 @@ export default function ConcorsoPage() {
             const res = await fetch(`${STRAPI_URL}/concorso/${entryId}/upload`, { method: 'POST', body: fd })
             const data = await res.json()
             if (!res.ok) { setError(data.error?.message || 'Errore durante il caricamento'); setLoading(false); return }
-            setStep('payment')
-        } catch {
-            setError('Errore di connessione, riprova')
-        }
-        setLoading(false)
-    }
-
-    useEffect(() => {
-        if (step !== 'payment' || manualChoice) return
-        const script = document.createElement('script')
-        script.src = `https://www.paypal.com/sdk/js?client-id=${PAYPAL_CLIENT_ID}&currency=EUR`
-        script.async = true
-        script.onload = () => {
-            const paypal = getPayPal()
-            if (!paypal) return
-            paypal.Buttons({
-                createOrder: (_data, actions) =>
-                    actions.order.create({ purchase_units: [{ amount: { currency_code: 'EUR', value: '10.00' } }] }),
-                onApprove: async (_data, actions) => {
-                    const order = await actions.order.capture()
-                    setLoading(true)
-                    const res = await fetch('/api/concorso/verify-payment', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ entryId: entryDocId, paypalOrderId: order.id }),
-                    })
-                    setStep(res.ok ? 'done' : 'payment')
-                    if (!res.ok) setError('Verifica pagamento fallita, contattaci a info@soulvolks.it')
-                    setLoading(false)
-                },
-            }).render('#paypal-button-container')
-        }
-        document.body.appendChild(script)
-    }, [step, entryDocId, manualChoice])
-
-    async function scegliPagamentoManuale(metodo: 'contanti' | 'bonifico') {
-        setLoading(true)
-        setError('')
-        try {
-            const res = await fetch('/api/concorso/manual-payment', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ entryId, metodo, ...form }),
-            })
-            if (!res.ok) { setError('Errore, riprova'); setLoading(false); return }
-            setManualChoice(metodo)
+            setStep('done')
         } catch {
             setError('Errore di connessione, riprova')
         }
@@ -302,59 +241,12 @@ export default function ConcorsoPage() {
                     </form>
                 )}
 
-                {step === 'payment' && !manualChoice && (
-                    <div className="payment">
-                        <h2>Completa l&apos;iscrizione</h2>
-                        <p className="quota">Quota di partecipazione <strong>€10,00</strong></p>
-                        <div id="paypal-button-container" />
-                        {loading && <p className="hint">Verifica pagamento in corso…</p>}
-
-                        <div className="divider"><span>oppure</span></div>
-
-                        <p className="hint">Preferisci pagare di persona o con bonifico?</p>
-                        <div className="manual-options">
-                            <button type="button" className="btn-secondary" disabled={loading} onClick={() => scegliPagamentoManuale('contanti')}>
-                                Contanti all&apos;evento
-                            </button>
-                            <button type="button" className="btn-secondary" disabled={loading} onClick={() => scegliPagamentoManuale('bonifico')}>
-                                Bonifico bancario
-                            </button>
-                        </div>
-                    </div>
-                )}
-
-                {step === 'payment' && manualChoice && (
-                    <div className="payment manual-confirmed">
-                        <span className="check">✓</span>
-                        <h2>Quasi fatto!</h2>
-                        {manualChoice === 'contanti' ? (
-                            <p>La tua iscrizione è registrata. Paga <strong>€10,00 in contanti</strong> allo stand Soul Volks entro <strong>48 ore</strong> per confermare la partecipazione.</p>
-                        ) : (
-                            <>
-                                <p>La tua iscrizione è registrata. Effettua un bonifico di <strong>€10,00</strong> entro <strong>7 giorni</strong> per confermare la partecipazione (considera i tempi bancari):</p>                <div className="iban-box">
-                                    <p className="iban-label">IBAN</p>
-                                    <p className="iban-value">IT67 F052 6203 802C C140 0002 078</p>
-                                    <p className="iban-label">Intestato a</p>
-                                    <p className="iban-value">Soul Volks aps</p>
-                                    <p className="iban-label">Causale</p>
-                                    <p className="iban-value">Concorso foto — {form.nome} {form.cognome}</p>
-                                </div>
-                            </>
-                        )}
-                        <p className="small">
-                            {manualChoice === 'bonifico'
-                                ? 'Se il pagamento non risulta entro 7 giorni, l\'iscrizione verrà annullata automaticamente.'
-                                : 'Se il pagamento non risulta entro 48 ore, l\'iscrizione verrà annullata automaticamente.'}
-                        </p>
-                    </div>
-                )}
-
                 {step === 'done' && (
                     <div className="done">
                         <span className="check">✓</span>
                         <h2>Iscrizione completata!</h2>
-                        <p>Grazie per aver partecipato al concorso. Riceverai una conferma via email.</p>
-                        <p className="small">In bocca al lupo per il Volks Camp 2026 🚐</p>
+                        <p>Grazie per aver partecipato al concorso — la partecipazione è gratuita, non devi fare nient&apos;altro.</p>
+                        <p className="small">Riceverai una conferma via email. In bocca al lupo per il Volks Camp 2026 🚐</p>
                     </div>
                 )}
             </div>
