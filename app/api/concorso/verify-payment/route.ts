@@ -4,7 +4,9 @@ const STRAPI_URL = process.env.NEXT_PUBLIC_STRAPI_API_URL || 'http://localhost:1
 const STRAPI_TOKEN = process.env.STRAPI_API_TOKEN
 const PAYPAL_CLIENT_ID = process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID
 const PAYPAL_SECRET = process.env.PAYPAL_SECRET_KEY
-const PAYPAL_BASE = 'https://api-m.paypal.com' // produzione, stesse credenziali live dei biglietti
+const PAYPAL_BASE = 'https://api-m.paypal.com'
+const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN
+const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID
 
 async function getPayPalToken(): Promise<string> {
   const res = await fetch(`${PAYPAL_BASE}/v1/oauth2/token`, {
@@ -35,6 +37,18 @@ async function verifyPayPalOrder(orderId: string, retries = 3): Promise<boolean>
   return false
 }
 
+async function notifyTelegram(entry: any) {
+  if (!TELEGRAM_BOT_TOKEN || !TELEGRAM_CHAT_ID) return
+  const testo = `✅ *Concorso — pagamento PayPal ricevuto*\n\n👤 ${entry.nome} ${entry.cognome}\n📧 ${entry.email}\n📞 ${entry.telefono}\n💶 €10,00 pagati\n\nNessuna azione richiesta, iscrizione già confermata.`
+  try {
+    await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chat_id: TELEGRAM_CHAT_ID, text: testo, parse_mode: 'Markdown' }),
+    })
+  } catch { /* non blocchiamo la risposta all'utente se Telegram fallisce */ }
+}
+
 export async function POST(req: NextRequest) {
   try {
     const { entryId, paypalOrderId } = await req.json()
@@ -43,7 +57,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Dati mancanti' }, { status: 400 })
     }
 
-    // Recupera l'entry, controlla che non sia già stata pagata (evita doppie verifiche)
     const entryRes = await fetch(`${STRAPI_URL}/concorso-entries/${entryId}`, {
       headers: { 'Authorization': `Bearer ${STRAPI_TOKEN}` },
     })
@@ -75,6 +88,8 @@ export async function POST(req: NextRequest) {
       const err = await updateRes.json()
       return NextResponse.json({ error: err }, { status: 400 })
     }
+
+    await notifyTelegram(entryData.data)
 
     return NextResponse.json({ success: true })
   } catch {
