@@ -191,16 +191,13 @@ export default function ConcorsoPage() {
 
                 {step === 'form' && (
                     <form onSubmit={handleRegister}>
-                        <div className="notice">
-                            ⚠️ Una volta iniziata l&apos;iscrizione, la tua email e il tuo numero restano riservati per evitare doppioni. Completa tutti i passaggi (o scegli un metodo di pagamento) in un&apos;unica sessione: se abbandoni a metà dovrai attendere 48 oreprima di poter riprovare.
-                        </div>
                         <details className="regolamento">
                             <summary>
                                 <span className="summary-arrow">▸</span> Regolamento e premi
                             </summary>
                             <div className="reg-body">
                                 <p>
-                                    L&apos;Associazione <strong>Soul Volks</strong> organizza il Concorso Fotografico
+                                    L&apos;Associazione <strong>Soul Volks </strong> organizza il Concorso Fotografico
                                     &laquo;Racconti visivi del Matese Volks Camp 2026&raquo;, in occasione del raduno
                                     nazionale di auto d&apos;epoca Volkswagen a Campitello Matese dal 7 al 9 agosto 2026.
                                 </p>
@@ -238,6 +235,9 @@ export default function ConcorsoPage() {
                             <input type="checkbox" checked={consenso} onChange={e => setConsenso(e.target.checked)} />
                             <span>Ho letto e accetto il regolamento e la privacy policy</span>
                         </label>
+                        <div className="notice">
+                            ⚠️ Una volta iniziata l&apos;iscrizione, la tua email e il tuo numero restano riservati per evitare doppioni. Completa tutti i passaggi (o scegli un metodo di pagamento) in un&apos;unica sessione: se abbandoni a metà dovrai attendere prima 48 ore di poter riprovare.
+                        </div>
 
                         <div className="fields">
                             <div className="field">
@@ -385,7 +385,7 @@ export default function ConcorsoPage() {
           opacity: 0.85;
         }
         h1 {
-          color: #f4e9dd;
+          color: #e2572b;
           font-size: 2rem;
           line-height: 1.25;
           margin: 0 0 0.7rem;
